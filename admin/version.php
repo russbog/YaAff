@@ -36,6 +36,7 @@ function check_geo_bases() {
         <div class="version-column">
             <div class="version-item">
                 <span class="version-label">Version:</span>
+                <?php /* Version format: YY.MM.DD.mm (mm = minutes since midnight, UTC). See admin/autoupdate.php. */ ?>
                 <span class="version-value"><?= file_get_contents(__DIR__.'/version.txt') ?></span>
             </div>
             <div class="version-item">

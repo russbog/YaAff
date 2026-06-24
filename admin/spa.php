@@ -116,6 +116,7 @@ try {
             $gs = $db->get_common_settings();
             $user = auth_current_user();
             spa_respond([
+                // Version format: YY.MM.DD.mm (mm = minutes since midnight, UTC). See admin/autoupdate.php.
                 'version'      => trim(@file_get_contents(__DIR__ . '/version.txt') ?: ''),
                 'multiuser'    => auth_multiuser(),
                 'user'         => $user ? ['name' => $user['name'], 'role' => $user['role']] : null,

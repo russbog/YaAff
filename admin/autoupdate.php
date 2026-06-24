@@ -78,10 +78,23 @@ class AutoUpdater {
         }
     }
 
+    /**
+     * Convert a version string into a UNIX timestamp so versions can be compared chronologically.
+     *
+     * Current version format: YY.MM.DD.mm
+     *   YY = 2-digit year, MM = month, DD = day, mm = minutes since midnight (UTC).
+     *   Example: 26.06.24.728 => 2026-06-24 12:08 UTC.
+     * Bump with: printf "%s.%d" "$(date -u +%y.%m.%d)" "$(( $(date -u +%-H)*60 + $(date -u +%-M) ))"
+     *
+     * Legacy version format (3 parts): DD.MM.YY (kept for backward-compatible auto-update).
+     *
+     * Versions must increase monotonically: checkForUpdates() only updates when the remote
+     * version's timestamp is strictly greater than the local one.
+     */
     private function convertVersionToTimestamp(string $version): int {
         $parts = explode('.', $version);
         if (count($parts) === 4) {
-            // New format: YY.MM.DD.mm (minutes since midnight)
+            // New format: YY.MM.DD.mm (mm = minutes since midnight, UTC)
             $mm = intval($parts[3]);
             return mktime(intdiv($mm, 60), $mm % 60, 0, intval($parts[1]), intval($parts[2]), 2000 + intval($parts[0]));
         }

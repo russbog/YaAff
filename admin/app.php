@@ -31,6 +31,7 @@ $html = (string)file_get_contents($dist);
 $inject = '<base href="' . htmlspecialchars($appBase, ENT_QUOTES) . '">'
     . '<script>window.__YAAFF__=' . json_encode([
         'apiBase' => $adminBase,
+        // Version format: YY.MM.DD.mm (mm = minutes since midnight, UTC). See admin/autoupdate.php.
         'version' => trim(@file_get_contents(__DIR__ . '/version.txt') ?: ''),
     ], JSON_UNESCAPED_SLASHES) . ';</script>';
 

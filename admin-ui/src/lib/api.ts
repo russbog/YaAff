@@ -9,6 +9,8 @@ declare global {
 }
 
 export const API_BASE: string = window.__YAAFF__?.apiBase ?? '/admin/';
+// Version format: YY.MM.DD.mm (mm = minutes since midnight, UTC), e.g. "26.06.24.728".
+// Sourced from admin/version.txt; see admin/autoupdate.php for parsing/comparison.
 export const APP_VERSION: string = window.__YAAFF__?.version ?? 'dev';
 
 export class ApiError extends Error {
