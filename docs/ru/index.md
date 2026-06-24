@@ -21,6 +21,10 @@
 - [Тестирование и диагностика](testing-and-diagnostics.md)
 - [Troubleshooting и FAQ](troubleshooting-and-faq.md)
 
+## Архитектура (форк)
+
+- [Фаза 0: Абстракция БД, слой сущностей и миграции](phase-0-db-abstraction.md)
+
 ## С чего начать
 
 Если вы впервые открыли проект:

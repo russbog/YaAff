@@ -20,3 +20,7 @@ This is the main product, admin, and runtime documentation for YellowCloaker.
 - [API and Endpoints](api-and-endpoints.md)
 - [Testing and Diagnostics](testing-and-diagnostics.md)
 - [Troubleshooting and FAQ](troubleshooting-and-faq.md)
+
+## Architecture (fork)
+
+- [Phase 0: DB Abstraction, Entity Layer & Migrations](phase-0-db-abstraction.md)

@@ -4,41 +4,45 @@ require_once __DIR__ . "/../cookies.php";
 require_once __DIR__ . "/../logging.php";
 require_once __DIR__ . "/../settings.php";
 require_once __DIR__ . "/../paths.php";
+require_once __DIR__ . "/drivers/SqliteDriver.php";
 
 class Db
 {
-    private $dbPath;
-    private ?SQLite3 $readDb = null;
-    private ?SQLite3 $writeDb = null;
+    private DbDriver $driver;
 
-    public function __construct()
+    public function __construct(?DbDriver $driver = null, ?string $dbPath = null)
     {
+        if ($driver !== null) {
+            $this->driver = $driver;
+            $this->ensure_schema_migrations();
+            return;
+        }
+
         global $cloSettings;
-        $this->dbPath = __DIR__ . '/' . $cloSettings['dbConnection'];
-        if (!file_exists($this->dbPath)) {
-            $created = $this->create_new_db();
-            if (!$created)
+        $path = $dbPath ?? __DIR__ . '/' . $cloSettings['dbConnection'];
+        $needsCreate = !file_exists($path);
+        $this->driver = new SqliteDriver($path);
+        if ($needsCreate) {
+            if (!$this->create_new_db())
                 die("Couldn't create the SQLite database! Read logs for additional info.");
         }
         $this->ensure_schema_migrations();
     }
 
+    /** The database driver currently in use (SQLite by default). */
+    public function driver(): DbDriver
+    {
+        return $this->driver;
+    }
+
     private function ensure_schema_migrations(): void
     {
-        $db = new SQLite3($this->dbPath, SQLITE3_OPEN_READWRITE);
-        $db->busyTimeout(5000);
-
-        $columns = [];
-        $result = $db->query("PRAGMA table_info(clicks)");
-        while ($row = $result?->fetchArray(SQLITE3_ASSOC)) {
-            $columns[] = $row['name'] ?? '';
+        $columns = $this->driver->tableColumns('clicks');
+        if (!empty($columns) && !in_array('events', $columns, true)) {
+            $this->driver->exec("ALTER TABLE clicks ADD COLUMN events TEXT DEFAULT '{}'");
         }
 
-        if (!in_array('events', $columns, true)) {
-            $db->exec("ALTER TABLE clicks ADD COLUMN events TEXT DEFAULT '{}'");
-        }
-
-        $db->exec(
+        $this->driver->exec(
             "CREATE TABLE IF NOT EXISTS click_event_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 clickid TEXT NOT NULL,
@@ -49,9 +53,8 @@ class Db
                 FOREIGN KEY (clickid) REFERENCES clicks (clickid) ON DELETE CASCADE
             )"
         );
-        $db->exec('CREATE INDEX IF NOT EXISTS idx_event_clickid_time ON click_event_log (clickid,time)');
-        $db->exec('CREATE INDEX IF NOT EXISTS idx_event_name_time ON click_event_log (event_name,time)');
-        $db->close();
+        $this->driver->exec('CREATE INDEX IF NOT EXISTS idx_event_clickid_time ON click_event_log (clickid,time)');
+        $this->driver->exec('CREATE INDEX IF NOT EXISTS idx_event_name_time ON click_event_log (event_name,time)');
     }
 
     private static function decode_click_row(array &$click): void
@@ -76,9 +79,7 @@ class Db
 
     private function create_new_db(): bool
     {
-        $db = null;
         try {
-            // Read SQL schema and initial settings
             $createTableSQL = @file_get_contents(__DIR__ . "/db.sql");
             if ($createTableSQL === false) {
                 throw new Exception("Failed to read database schema file");
@@ -89,92 +90,27 @@ class Db
                 throw new Exception("Failed to read common settings file");
             }
 
-            // Initialize database
-            $db = new SQLite3($this->dbPath, SQLITE3_OPEN_CREATE | SQLITE3_OPEN_READWRITE);
-            $db->busyTimeout(5000);
-
-
-            // Create tables
-            $result = $db->exec($createTableSQL);
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
+            if ($this->driver->exec($createTableSQL) === false) {
+                throw new Exception("Failed to execute database schema");
             }
 
-            // Insert initial settings
-            $query = "INSERT INTO common (settings) VALUES (:settings)";
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
-            $stmt->bindValue(':settings', $settingsJson, SQLITE3_TEXT);
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
+            $this->driver->execute(
+                "INSERT INTO common (settings) VALUES (:settings)",
+                [':settings' => [$settingsJson, DbDriver::TEXT]]
+            );
 
             add_log("trace", "Successfully initialized database with schema and common settings");
             return true;
-        } catch (Exception $e) {
-            if (isset($db)) {
-                $db->exec('ROLLBACK');
-                add_log("errors", "Failed to initialize database: " . $e->getMessage());
-            } else {
-                die("Critical error initializing database: " . $e->getMessage());
-            }
+        } catch (Throwable $e) {
+            add_log("errors", "Failed to initialize database: " . $e->getMessage());
             return false;
-        } finally {
-            if (isset($db))
-                $db->close();
-        }
-    }
-
-    private function open_db(bool $readOnly = false): SQLite3
-    {
-        if ($readOnly && $this->readDb !== null) {
-            return $this->readDb;
-        }
-        if (!$readOnly && $this->writeDb !== null) {
-            return $this->writeDb;
-        }
-
-        $db = new SQLite3($this->dbPath, $readOnly ? SQLITE3_OPEN_READONLY : SQLITE3_OPEN_READWRITE);
-        $db->busyTimeout(5000);
-
-        // Optimizations
-        $db->exec('PRAGMA foreign_keys = ON');
-        $db->exec('PRAGMA journal_mode = wal');
-        $db->exec('PRAGMA mmap_size = 268435456');    // 256MB memory mapping
-        $db->exec('PRAGMA cache_size = -64000');      // 64MB cache pages  
-        $db->exec('PRAGMA temp_store = MEMORY');      // temporary data in RAM
-
-        if (!$readOnly) {
-            $db->exec('PRAGMA synchronous = OFF');    // only for writing
-            $this->writeDb = $db;
-        } else {
-            $this->readDb = $db;
-        }
-
-        return $db;
-    }
-    public function __destruct()
-    {
-        if ($this->readDb !== null) {
-            $this->readDb->close();
-            $this->readDb = null;
-        }
-        if ($this->writeDb !== null) {
-            $this->writeDb->close();
-            $this->writeDb = null;
         }
     }
 
     public function get_trafficback_clicks($startdate, $enddate): array
     {
         $query = "SELECT * FROM trafficback WHERE time BETWEEN :startDate AND :endDate ORDER BY time DESC";
-        $clicks = $this->exec_read_query($query, [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER]);
+        $clicks = $this->exec_read_query($query, [$startdate => DbDriver::INT, $enddate => DbDriver::INT]);
         foreach ($clicks as &$click) {
             if (empty($click['params']))
                 continue;
@@ -190,7 +126,7 @@ class Db
     private function get_campaign_clicks(int $startdate, int $enddate, int $campId, bool $blocked = false): array
     {
         $query = "SELECT * FROM " . ($blocked ? "blocked" : "clicks") . " WHERE time BETWEEN :startDate AND :endDate AND campaign_id = :campid ORDER BY time DESC";
-        $clicks = $this->exec_read_query($query, [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER]);
+        $clicks = $this->exec_read_query($query, [$startdate => DbDriver::INT, $enddate => DbDriver::INT, $campId => DbDriver::INT]);
         foreach ($clicks as &$click) {
             if (!$blocked) {
                 self::decode_click_row($click);
@@ -224,7 +160,7 @@ class Db
         } elseif (str_starts_with($sortField, 'param.')) {
             $key = substr($sortField, 6);
             if (preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
-                $sortExpr = "json_extract(params, '\$.$key')";
+                $sortExpr = $this->driver->jsonExtract('params', $key);
             }
         }
         $sortDir = strtolower($sortDir) === 'asc' ? 'ASC' : 'DESC';
@@ -234,22 +170,22 @@ class Db
             case 'blocked':
                 $table = 'blocked';
                 $where = "time BETWEEN ? AND ? AND campaign_id = ?";
-                $bindParams = [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER];
+                $bindParams = [$startdate => DbDriver::INT, $enddate => DbDriver::INT, $campId => DbDriver::INT];
                 break;
             case 'leads':
                 $table = 'clicks';
                 $where = "time BETWEEN ? AND ? AND campaign_id = ? AND status IS NOT NULL";
-                $bindParams = [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER];
+                $bindParams = [$startdate => DbDriver::INT, $enddate => DbDriver::INT, $campId => DbDriver::INT];
                 break;
             case 'trafficback':
                 $table = 'trafficback';
                 $where = "time BETWEEN ? AND ?";
-                $bindParams = [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER];
+                $bindParams = [$startdate => DbDriver::INT, $enddate => DbDriver::INT];
                 break;
             default: // allowed
                 $table = 'clicks';
                 $where = "time BETWEEN ? AND ? AND campaign_id = ?";
-                $bindParams = [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER];
+                $bindParams = [$startdate => DbDriver::INT, $enddate => DbDriver::INT, $campId => DbDriver::INT];
                 break;
         }
         $tableFilterFields = match ($table) {
@@ -274,7 +210,7 @@ class Db
                     continue;
                 }
 
-                $sqlField = self::resolveFilterField($field);
+                $sqlField = $this->resolveFilterField($field);
                 if ($sqlField === null || !in_array($op, self::FILTER_OPERATORS)) {
                     continue;
                 }
@@ -282,21 +218,21 @@ class Db
                 switch ($op) {
                     case '=':
                         $filterParts[] = "$sqlField = ?";
-                        $bindList[] = [$value, SQLITE3_TEXT];
+                        $bindList[] = [$value, DbDriver::TEXT];
                         break;
                     case '!=':
                         $filterParts[] = "$sqlField != ?";
-                        $bindList[] = [$value, SQLITE3_TEXT];
+                        $bindList[] = [$value, DbDriver::TEXT];
                         break;
                     case 'in':
                         $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
                         $filterParts[] = "$sqlField IN (" . implode(',', array_fill(0, count($vals), '?')) . ")";
-                        foreach ($vals as $v) $bindList[] = [$v, SQLITE3_TEXT];
+                        foreach ($vals as $v) $bindList[] = [$v, DbDriver::TEXT];
                         break;
                     case 'not_in':
                         $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
                         $filterParts[] = "$sqlField NOT IN (" . implode(',', array_fill(0, count($vals), '?')) . ")";
-                        foreach ($vals as $v) $bindList[] = [$v, SQLITE3_TEXT];
+                        foreach ($vals as $v) $bindList[] = [$v, DbDriver::TEXT];
                         break;
                     case 'is_null':
                         $filterParts[] = "($sqlField IS NULL OR $sqlField = '')";
@@ -318,15 +254,15 @@ class Db
             $escapedSearch = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchTerm);
             $likePattern = '%' . $escapedSearch . '%';
             $searchWhere = " AND (userid LIKE ? ESCAPE '\\' OR clickid LIKE ? ESCAPE '\\')";
-            $bindList[] = [$likePattern, SQLITE3_TEXT];
-            $bindList[] = [$likePattern, SQLITE3_TEXT];
+            $bindList[] = [$likePattern, DbDriver::TEXT];
+            $bindList[] = [$likePattern, DbDriver::TEXT];
         }
 
         $countQuery = "SELECT COUNT(*) as total FROM $table WHERE $where$filterWhere$searchWhere";
         $countResult = $this->exec_bind_list_query($countQuery, $bindList, true);
         $total = (int)($countResult['total'] ?? 0);
 
-        $dataQuery = "SELECT * FROM $table WHERE $where$filterWhere$searchWhere ORDER BY $sortExpr COLLATE NOCASE $sortDir LIMIT $size OFFSET $offset";
+        $dataQuery = "SELECT * FROM $table WHERE $where$filterWhere$searchWhere ORDER BY $sortExpr " . $this->driver->caseInsensitiveCollation() . " $sortDir LIMIT $size OFFSET $offset";
         $clicks = $this->exec_bind_list_query($dataQuery, $bindList);
         foreach ($clicks as &$click) {
             self::decode_click_row($click);
@@ -350,7 +286,7 @@ class Db
         }
 
         $query = "SELECT * FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1";
-        $clicks = $this->exec_read_query($query, [$clickid => SQLITE3_TEXT]);
+        $clicks = $this->exec_read_query($query, [$clickid => DbDriver::TEXT]);
         foreach ($clicks as &$click) {
             self::decode_click_row($click);
         }
@@ -365,10 +301,10 @@ class Db
         }
 
         $query = "SELECT * FROM clicks WHERE userid = :userid";
-        $params = [$userid => SQLITE3_TEXT];
+        $params = [$userid => DbDriver::TEXT];
         if ($campId > 0) {
             $query .= " AND campaign_id = :cid";
-            $params[$campId] = SQLITE3_INTEGER;
+            $params[$campId] = DbDriver::INT;
         }
         $query .= " ORDER BY time DESC LIMIT 1";
         $clicks = $this->exec_read_query($query, $params);
@@ -383,7 +319,7 @@ class Db
         // Prepare SQL query to select leads within the date range and configuration
         $query = "SELECT * FROM clicks WHERE time BETWEEN :startDate AND :endDate AND campaign_id = :campid AND status IS NOT NULL ORDER BY time DESC";
 
-        $clicks = $this->exec_read_query($query, [$startdate => SQLITE3_INTEGER, $enddate => SQLITE3_INTEGER, $campId => SQLITE3_INTEGER]);
+        $clicks = $this->exec_read_query($query, [$startdate => DbDriver::INT, $enddate => DbDriver::INT, $campId => DbDriver::INT]);
         foreach ($clicks as &$click) {
             if (empty($click['params']))
                 continue;
@@ -482,7 +418,7 @@ class Db
                     if (str_starts_with($field, 'event.')) {
                         $eventName = substr($field, 6);
                         if (preg_match('/^[a-z0-9_]+$/', $eventName)) {
-                            $selectParts[] = "COALESCE(SUM(CAST(json_extract(events, '$.$eventName') AS REAL)), 0) AS \"$field\"";
+                            $selectParts[] = "COALESCE(SUM(" . $this->driver->jsonExtractReal('events', $eventName) . "), 0) AS \"$field\"";
                         }
                     }
                     break;
@@ -498,14 +434,14 @@ class Db
 
     private const FILTER_OPERATORS = ['=', '!=', 'in', 'not_in', 'is_null', 'is_not_null'];
 
-    private static function resolveFilterField(string $field): ?string {
+    private function resolveFilterField(string $field): ?string {
         if (in_array($field, self::FILTERABLE_FIELDS)) {
             return $field;
         }
         if (str_starts_with($field, 'param.')) {
             $key = substr($field, 6);
             if (preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
-                return "json_extract(params, '\$.$key')";
+                return $this->driver->jsonExtract('params', $key);
             }
         }
         return null;
@@ -524,7 +460,7 @@ class Db
             $op = $rule['operator'] ?? '';
             $value = $rule['value'] ?? '';
 
-            $sqlField = self::resolveFilterField($field);
+            $sqlField = $this->resolveFilterField($field);
             if ($sqlField === null || !in_array($op, self::FILTER_OPERATORS)) {
                 continue;
             }
@@ -608,7 +544,7 @@ class Db
                 $offsetFormatted = sprintf('%+03d:%02d', $hours, $minutes);
 
                 $selectParts[] =
-                    "strftime('%Y-%m-%d', datetime(time, 'unixepoch', '{$offsetFormatted}')) AS date";
+                    $this->driver->dateGroup('time', $offsetFormatted) . " AS date";
                 $groupByParts[] = "date";
                 $orderByParts[] = "date";
             } elseif (in_array($field, ['country', 'lang', 'os', 'osver', 'brand', 'model', 'device', 'isp', 'client', 'clientver', 'flow', 'step', 'path'])) {
@@ -620,7 +556,7 @@ class Db
                 $jsonKey = str_starts_with($field, 'param.') ? substr($field, 6) : $field;
                 if (!preg_match('/^[a-zA-Z0-9_]+$/', $jsonKey)) continue;
                 $alias = $jsonKey;
-                $jsonExtract = "COALESCE(json_extract(params, '$." . $jsonKey . "'), 'unknown') AS " . $alias;
+                $jsonExtract = "COALESCE(" . $this->driver->jsonExtract('params', $jsonKey) . ", 'unknown') AS " . $alias;
                 $selectParts[] = $jsonExtract;
                 $groupByParts[] = $alias;
                 $orderByParts[] = $alias;
@@ -633,31 +569,20 @@ class Db
         $orderByClause = !empty($orderByParts) ? "ORDER BY " . implode(', ', $orderByParts) : '';
         $sqlQuery = sprintf($baseQuery, $selectClause) . $filterWhere . " " . $groupByClause . " " . $orderByClause;
 
-        $db = $this->open_db(true);
-        $stmt = $db->prepare($sqlQuery);
-        if ($stmt === false) {
-            $errorMessage = $db->lastErrorMsg();
-            add_log("errors", "Error preparing statistics statement: $errorMessage");
-            return [];
-        }
-
-        $stmt->bindValue(':campid', $campId, SQLITE3_INTEGER);
-        $stmt->bindValue(':startDate', $startDate, SQLITE3_INTEGER);
-        $stmt->bindValue(':endDate', $endDate, SQLITE3_INTEGER);
+        $params = [
+            ':campid' => [$campId, DbDriver::INT],
+            ':startDate' => [$startDate, DbDriver::INT],
+            ':endDate' => [$endDate, DbDriver::INT],
+        ];
         foreach ($filterBinds as $param => $val) {
-            $stmt->bindValue($param, $val, SQLITE3_TEXT);
+            $params[$param] = [$val, DbDriver::TEXT];
         }
-        $result = $stmt->execute();
 
-        if ($result === false) {
-            $errorMessage = $db->lastErrorMsg();
-            add_log("errors", "Error executing statistics statement: $errorMessage");
+        try {
+            $rows = $this->driver->select($sqlQuery, $params);
+        } catch (Throwable $e) {
+            add_log("errors", "Error executing statistics statement: " . $e->getMessage());
             return [];
-        }
-
-        $rows = [];
-        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $rows[] = $row;
         }
 
         // Normalize groupby field names: strip param. prefix so they match SQL aliases
@@ -783,32 +708,39 @@ class Db
         return $totals;
     }
 
+    private function bindType($value): int
+    {
+        if (is_int($value) || is_bool($value)) {
+            return DbDriver::INT;
+        }
+        if (is_float($value)) {
+            return DbDriver::FLOAT;
+        }
+        return DbDriver::TEXT;
+    }
+
     private function add_click(string $query, array $click): bool
     {
         try {
-            $db = $this->open_db();
-            $stmt = $db->prepare($query);
+            preg_match_all('/:([a-zA-Z_][a-zA-Z0-9_]*)/', $query, $matches);
+            $placeholders = array_flip($matches[1]);
 
-            if ($stmt === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
+            $params = [];
             foreach ($click as $key => $value) {
+                if (!isset($placeholders[$key])) {
+                    continue;
+                }
                 if (!isset($value)) {
                     add_log("warning", "Null value found for field '$key' in click data");
                     $value = '';
                 }
-                $stmt->bindValue(':' . $key, $value);
+                $params[':' . $key] = [$value, $this->bindType($value)];
             }
 
-            $result = $stmt->execute();
-            if ($result === false) {
-                throw new Exception($db->lastErrorMsg());
-            }
-
+            $this->driver->execute($query, $params);
             add_log("trace", "Successfully added click for IP: " . ($click['ip'] ?? 'unknown'));
             return true;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             add_log("errors", "Failed to add click: " . $e->getMessage() . ", Data: " . json_encode($click));
             return false;
         }
@@ -861,35 +793,30 @@ class Db
         }
 
         try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
+            $this->driver->beginTransaction();
 
-            $insertStmt = $db->prepare("INSERT OR IGNORE INTO click_steps (clickid, step, variant, time) VALUES (:clickid, :step, :variant, :time)");
-            if ($insertStmt === false) {
-                throw new Exception('Failed to prepare click_steps insert: ' . $db->lastErrorMsg());
-            }
-            $insertStmt->bindValue(':clickid', $clickid, SQLITE3_TEXT);
-            $insertStmt->bindValue(':step', $step, SQLITE3_INTEGER);
-            $insertStmt->bindValue(':variant', $variant, SQLITE3_TEXT);
-            $insertStmt->bindValue(':time', time(), SQLITE3_INTEGER);
-            if ($insertStmt->execute() === false) {
-                throw new Exception('Failed to insert click step: ' . $db->lastErrorMsg());
-            }
+            $this->driver->execute(
+                $this->driver->insertIgnoreInto() . " click_steps (clickid, step, variant, time) VALUES (:clickid, :step, :variant, :time)",
+                [
+                    ':clickid' => [$clickid, DbDriver::TEXT],
+                    ':step' => [$step, DbDriver::INT],
+                    ':variant' => [$variant, DbDriver::TEXT],
+                    ':time' => [time(), DbDriver::INT],
+                ]
+            );
 
-            $updateStmt = $db->prepare("UPDATE clicks SET step = MAX(step, :newStep) WHERE clickid = :clickid");
-            if ($updateStmt === false) {
-                throw new Exception('Failed to prepare click step update: ' . $db->lastErrorMsg());
-            }
-            $updateStmt->bindValue(':newStep', $step, SQLITE3_INTEGER);
-            $updateStmt->bindValue(':clickid', $clickid, SQLITE3_TEXT);
-            if ($updateStmt->execute() === false) {
-                throw new Exception('Failed to update click current step: ' . $db->lastErrorMsg());
-            }
+            $this->driver->execute(
+                "UPDATE clicks SET step = " . $this->driver->greatest('step', ':newStep') . " WHERE clickid = :clickid",
+                [
+                    ':newStep' => [$step, DbDriver::INT],
+                    ':clickid' => [$clickid, DbDriver::TEXT],
+                ]
+            );
 
-            $db->exec('COMMIT');
+            $this->driver->commit();
             return true;
-        } catch (Exception $e) {
-            $this->writeDb?->exec('ROLLBACK');
+        } catch (Throwable $e) {
+            $this->driver->rollback();
             add_log('errors', $e->getMessage());
             return false;
         }
@@ -908,7 +835,7 @@ class Db
         }
 
         $query = "UPDATE clicks SET path = :path WHERE clickid = :clickid";
-        return $this->exec_update_query($query, [$pathJson => SQLITE3_TEXT, $clickid => SQLITE3_TEXT]);
+        return $this->exec_update_query($query, [$pathJson => DbDriver::TEXT, $clickid => DbDriver::TEXT]);
     }
 
     public function add_lead(string $clickid, array $leaddata, string $status = 'Lead'): bool
@@ -919,7 +846,7 @@ class Db
         }
 
         $updateQuery = "UPDATE clicks SET status = :status, leaddata = :leaddata WHERE id = (SELECT id FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1)";
-        return $this->exec_update_query($updateQuery, [$status => SQLITE3_TEXT, $leaddata => SQLITE3_TEXT, $clickid => SQLITE3_TEXT]);
+        return $this->exec_update_query($updateQuery, [$status => DbDriver::TEXT, $leaddata => DbDriver::TEXT, $clickid => DbDriver::TEXT]);
     }
 
     public function update_status(string $clickid, string $status, float $payout): bool
@@ -939,7 +866,7 @@ class Db
         }
 
         $updateQuery = "UPDATE clicks SET status = :status, payout = :payout WHERE id = (SELECT id FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1)";
-        return $this->exec_update_query($updateQuery, [$status => SQLITE3_TEXT, $payout => SQLITE3_FLOAT, $clickid => SQLITE3_TEXT]);
+        return $this->exec_update_query($updateQuery, [$status => DbDriver::TEXT, $payout => DbDriver::FLOAT, $clickid => DbDriver::TEXT]);
     }
 
     public function update_click_params(int $clickId, array $params): bool
@@ -956,7 +883,7 @@ class Db
         }
 
         $updateQuery = "UPDATE clicks SET params = :params WHERE id = :id";
-        return $this->exec_update_query($updateQuery, [$paramsJson => SQLITE3_TEXT, $clickId => SQLITE3_INTEGER]);
+        return $this->exec_update_query($updateQuery, [$paramsJson => DbDriver::TEXT, $clickId => DbDriver::INT]);
     }
 
     public function add_click_event(string $clickid, string $eventName, float $eventValue): bool
@@ -965,17 +892,14 @@ class Db
             return false;
         }
 
-        $db = $this->open_db();
         try {
-            $db->exec('BEGIN IMMEDIATE');
+            $this->driver->beginTransaction();
 
-            $clickStmt = $db->prepare('SELECT id, step, events FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1');
-            if ($clickStmt === false) {
-                throw new Exception('Failed to prepare click lookup: ' . $db->lastErrorMsg());
-            }
-            $clickStmt->bindValue(':clickid', $clickid, SQLITE3_TEXT);
-            $clickRow = $clickStmt->execute()?->fetchArray(SQLITE3_ASSOC) ?: null;
-            if (!is_array($clickRow)) {
+            $clickRow = $this->driver->selectOne(
+                'SELECT id, step, events FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1',
+                [':clickid' => [$clickid, DbDriver::TEXT]]
+            );
+            if (empty($clickRow)) {
                 throw new Exception('Click not found for clickid ' . $clickid);
             }
 
@@ -992,33 +916,29 @@ class Db
                 throw new Exception('Failed to encode events JSON');
             }
 
-            $insertStmt = $db->prepare('INSERT INTO click_event_log (clickid, time, step_index, event_name, event_value) VALUES (:clickid, :time, :step_index, :event_name, :event_value)');
-            if ($insertStmt === false) {
-                throw new Exception('Failed to prepare event insert: ' . $db->lastErrorMsg());
-            }
-            $insertStmt->bindValue(':clickid', $clickid, SQLITE3_TEXT);
-            $insertStmt->bindValue(':time', time(), SQLITE3_INTEGER);
-            $insertStmt->bindValue(':step_index', max(0, (int)($clickRow['step'] ?? 0)), SQLITE3_INTEGER);
-            $insertStmt->bindValue(':event_name', $eventName, SQLITE3_TEXT);
-            $insertStmt->bindValue(':event_value', $eventValue, SQLITE3_FLOAT);
-            if ($insertStmt->execute() === false) {
-                throw new Exception('Failed to insert event: ' . $db->lastErrorMsg());
-            }
+            $this->driver->execute(
+                'INSERT INTO click_event_log (clickid, time, step_index, event_name, event_value) VALUES (:clickid, :time, :step_index, :event_name, :event_value)',
+                [
+                    ':clickid' => [$clickid, DbDriver::TEXT],
+                    ':time' => [time(), DbDriver::INT],
+                    ':step_index' => [max(0, (int)($clickRow['step'] ?? 0)), DbDriver::INT],
+                    ':event_name' => [$eventName, DbDriver::TEXT],
+                    ':event_value' => [$eventValue, DbDriver::FLOAT],
+                ]
+            );
 
-            $updateStmt = $db->prepare('UPDATE clicks SET events = :events WHERE id = :id');
-            if ($updateStmt === false) {
-                throw new Exception('Failed to prepare events update: ' . $db->lastErrorMsg());
-            }
-            $updateStmt->bindValue(':events', $eventsJson, SQLITE3_TEXT);
-            $updateStmt->bindValue(':id', (int)$clickRow['id'], SQLITE3_INTEGER);
-            if ($updateStmt->execute() === false) {
-                throw new Exception('Failed to update click events: ' . $db->lastErrorMsg());
-            }
+            $this->driver->execute(
+                'UPDATE clicks SET events = :events WHERE id = :id',
+                [
+                    ':events' => [$eventsJson, DbDriver::TEXT],
+                    ':id' => [(int)$clickRow['id'], DbDriver::INT],
+                ]
+            );
 
-            $db->exec('COMMIT');
+            $this->driver->commit();
             return true;
-        } catch (Exception $e) {
-            $db->exec('ROLLBACK');
+        } catch (Throwable $e) {
+            $this->driver->rollback();
             add_log('errors', 'Failed to add click event: ' . $e->getMessage());
             return false;
         }
@@ -1027,14 +947,14 @@ class Db
     public function get_event_names(int $campId): array
     {
         $query = 'SELECT DISTINCT cel.event_name AS event_name FROM click_event_log cel INNER JOIN clicks c ON c.clickid = cel.clickid WHERE c.campaign_id = :campid ORDER BY cel.event_name';
-        $rows = $this->exec_read_query($query, [$campId => SQLITE3_INTEGER]);
+        $rows = $this->exec_read_query($query, [$campId => DbDriver::INT]);
         return array_values(array_filter(array_map(fn($row) => $row['event_name'] ?? null, $rows)));
     }
 
     public function get_funnel_stats(int $campId, string $flowName, string $status): array
     {
         $query = "SELECT path, COUNT(*) AS impressions, COUNT(CASE WHEN status = :status THEN 1 END) AS conversions FROM clicks WHERE campaign_id = :cid AND flow = :flow GROUP BY path";
-        return $this->exec_read_query($query, [$status => SQLITE3_TEXT, $campId => SQLITE3_INTEGER, $flowName => SQLITE3_TEXT]);
+        return $this->exec_read_query($query, [$status => DbDriver::TEXT, $campId => DbDriver::INT, $flowName => DbDriver::TEXT]);
     }
 
     public function get_variant_stats(int $campId, string $flowName, int $stepIndex, string $status): array
@@ -1050,10 +970,10 @@ class Db
             GROUP BY cs.variant
         ";
         return $this->exec_read_query($query, [
-            $status => SQLITE3_TEXT,
-            $campId => SQLITE3_INTEGER,
-            $flowName => SQLITE3_TEXT,
-            $stepIndex => SQLITE3_INTEGER,
+            $status => DbDriver::TEXT,
+            $campId => DbDriver::INT,
+            $flowName => DbDriver::TEXT,
+            $stepIndex => DbDriver::INT,
         ]);
     }
 
@@ -1064,7 +984,7 @@ class Db
             return false;
         }
         $query = "SELECT COUNT(*) AS count FROM clicks WHERE clickid = :clickid";
-        $res = $this->exec_read_query($query, [$clickid => SQLITE3_TEXT], true);
+        $res = $this->exec_read_query($query, [$clickid => DbDriver::TEXT], true);
         return $res['count'] > 0;
     }
 
@@ -1096,7 +1016,7 @@ class Db
         $settings = json_decode($settingsJson, true);
         $settings['apikey'] = $this->generate_api_key();
         $settingsJson = json_encode($settings);
-        return $this->exec_write_query($query, [$name => SQLITE3_TEXT, $settingsJson => SQLITE3_TEXT], true);
+        return $this->exec_write_query($query, [$name => DbDriver::TEXT, $settingsJson => DbDriver::TEXT], true);
     }
 
     private function generate_api_key(): string
@@ -1116,8 +1036,8 @@ class Db
 
     public function get_campaign_by_apikey(string $apikey): array
     {
-        $query = "SELECT * FROM campaigns WHERE settings->>'apikey' = :apikey";
-        $camp = $this->exec_read_query($query, [$apikey => SQLITE3_TEXT], true);
+        $query = "SELECT * FROM campaigns WHERE " . $this->driver->jsonExtract('settings', 'apikey') . " = :apikey";
+        $camp = $this->exec_read_query($query, [$apikey => DbDriver::TEXT], true);
         if (isset($camp['settings'])) {
             $camp['settings'] = json_decode($camp['settings'], true);
         }
@@ -1128,26 +1048,26 @@ class Db
     {
         $query = "INSERT INTO campaigns (name, settings)
                   SELECT name || ' (Clone)', settings FROM campaigns WHERE id = :id";
-        return $this->exec_write_query($query, [$id => SQLITE3_INTEGER], true);
+        return $this->exec_write_query($query, [$id => DbDriver::INT], true);
     }
 
     public function get_campaign_name(int $id): string
     {
         $query = "SELECT name FROM campaigns WHERE id = :id";
-        $arr = $this->exec_read_query($query, [$id => SQLITE3_INTEGER], true);
+        $arr = $this->exec_read_query($query, [$id => DbDriver::INT], true);
         return $arr['name'] ?? '';
     }
 
     public function get_campaigns_list(): array
     {
-        $query = "SELECT id, name FROM campaigns ORDER BY name COLLATE NOCASE ASC";
+        $query = "SELECT id, name FROM campaigns ORDER BY name " . $this->driver->caseInsensitiveCollation() . " ASC";
         return $this->exec_read_query($query, []);
     }
 
     public function get_campaign_settings(int $id): array
     {
         $query = "SELECT settings FROM campaigns WHERE id = :id";
-        $arr = $this->exec_read_query($query, [$id => SQLITE3_INTEGER], true);
+        $arr = $this->exec_read_query($query, [$id => DbDriver::INT], true);
         $settings = json_decode($arr['settings'], true);
         return $settings;
     }
@@ -1199,28 +1119,28 @@ class Db
     public function rename_campaign(int $id, string $name): bool
     {
         $query = "UPDATE campaigns SET name = :name WHERE id = :id";
-        return $this->exec_write_query($query, [$name => SQLITE3_TEXT, $id => SQLITE3_INTEGER]);
+        return $this->exec_write_query($query, [$name => DbDriver::TEXT, $id => DbDriver::INT]);
     }
 
     public function save_campaign_settings(int $id, array $settings): bool
     {
         $query = "UPDATE campaigns SET settings = :settings WHERE id = :id";
         $settingsJson = json_encode($settings);
-        return $this->exec_write_query($query, [$settingsJson => SQLITE3_TEXT, $id => SQLITE3_INTEGER]);
+        return $this->exec_write_query($query, [$settingsJson => DbDriver::TEXT, $id => DbDriver::INT]);
     }
 
 
     public function delete_campaign(int $id): bool
     {
         $query = "DELETE FROM campaigns WHERE id = :id";
-        return $this->exec_write_query($query, [$id => SQLITE3_INTEGER]);
+        return $this->exec_write_query($query, [$id => DbDriver::INT]);
     }
 
     public function get_campaigns($startDate, $endDate, array $selectFields, array $filters = []): array
     {
         $bindList = [];
-        $bindList[] = [$startDate, SQLITE3_INTEGER];
-        $bindList[] = [$endDate, SQLITE3_INTEGER];
+        $bindList[] = [$startDate, DbDriver::INT];
+        $bindList[] = [$endDate, DbDriver::INT];
 
         $filterJoin = '';
         if (!empty($filters) && !empty($filters['rules']) && is_array($filters['rules'])) {
@@ -1230,11 +1150,11 @@ class Db
                 $op = $rule['operator'] ?? '';
                 $value = $rule['value'] ?? '';
 
-                $sqlField = self::resolveFilterField($field);
+                $sqlField = $this->resolveFilterField($field);
                 if ($sqlField === null || !in_array($op, self::FILTER_OPERATORS)) continue;
 
-                if (str_starts_with($sqlField, "json_extract(")) {
-                    $sqlField = str_replace("json_extract(params,", "json_extract(c.params,", $sqlField);
+                if (str_starts_with($field, 'param.')) {
+                    $sqlField = $this->driver->jsonExtract('c.params', substr($field, 6));
                 } else {
                     $sqlField = "c.$sqlField";
                 }
@@ -1242,21 +1162,21 @@ class Db
                 switch ($op) {
                     case '=':
                         $filterParts[] = "$sqlField = ?";
-                        $bindList[] = [$value, SQLITE3_TEXT];
+                        $bindList[] = [$value, DbDriver::TEXT];
                         break;
                     case '!=':
                         $filterParts[] = "$sqlField != ?";
-                        $bindList[] = [$value, SQLITE3_TEXT];
+                        $bindList[] = [$value, DbDriver::TEXT];
                         break;
                     case 'in':
                         $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
                         $filterParts[] = "$sqlField IN (" . implode(',', array_fill(0, count($vals), '?')) . ")";
-                        foreach ($vals as $v) $bindList[] = [$v, SQLITE3_TEXT];
+                        foreach ($vals as $v) $bindList[] = [$v, DbDriver::TEXT];
                         break;
                     case 'not_in':
                         $vals = is_array($value) ? $value : array_map('trim', explode(',', $value));
                         $filterParts[] = "$sqlField NOT IN (" . implode(',', array_fill(0, count($vals), '?')) . ")";
-                        foreach ($vals as $v) $bindList[] = [$v, SQLITE3_TEXT];
+                        foreach ($vals as $v) $bindList[] = [$v, DbDriver::TEXT];
                         break;
                     case 'is_null':
                         $filterParts[] = "($sqlField IS NULL OR $sqlField = '')";
@@ -1307,40 +1227,20 @@ class Db
         if ($settingsJson === false) {
             throw new Exception("Failed to encode settings to JSON: " . json_last_error_msg());
         }
-        return $this->exec_write_query($query, [$settingsJson => SQLITE3_TEXT]);
+        return $this->exec_write_query($query, [$settingsJson => DbDriver::TEXT]);
     }
 
 
     private function exec_write_query(string $query, array $p, bool $returnId = false): bool|int
     {
         try {
-            $db = $this->open_db();
-            $db->exec('BEGIN IMMEDIATE');
-            $stmt = $db->prepare($query);
-
-            if ($stmt === false) {
-                throw new Exception("Error preparing $query: " . $db->lastErrorMsg());
-            }
-
-            $keys = array_keys($p);
-            foreach ($keys as $index => $key) {
-                $bound = $stmt->bindValue($index + 1, $key, $p[$key]);
-                if ($bound === false) {
-                    throw new Exception("Error binding $key to $query: " . $db->lastErrorMsg());
-                }
-            }
-
-            $result = $stmt->execute();
-
-            if ($result === false) {
-                throw new Exception("Error executing $query: " . $db->lastErrorMsg());
-            }
-
-            $db->exec('COMMIT');
+            $this->driver->beginTransaction();
+            $id = $this->driver->insert($query, $p);
+            $this->driver->commit();
             add_log("trace", "Successfully executed $query");
-            return $returnId ? $db->lastInsertRowID() : true;
-        } catch (Exception $e) {
-            $this->writeDb?->exec('ROLLBACK');
+            return $returnId ? $id : true;
+        } catch (Throwable $e) {
+            $this->driver->rollback();
             add_log("errors", $e->getMessage());
             return false;
         }
@@ -1349,31 +1249,13 @@ class Db
     private function exec_update_query(string $query, array $p): bool
     {
         try {
-            $db = $this->open_db();
-            $stmt = $db->prepare($query);
-            if ($stmt === false) {
-                throw new Exception("Failed to prepare $query: " . $db->lastErrorMsg());
-            }
-
-            $keys = array_keys($p);
-            foreach ($keys as $index => $key) {
-                $bound = $stmt->bindValue($index + 1, $key, $p[$key]);
-                if ($bound === false) {
-                    throw new Exception("Failed to bind $key to $query: " . $db->lastErrorMsg());
-                }
-            }
-
-            $result = $stmt->execute();
-            if ($result === false) {
-                throw new Exception("Failed to execute $query: " . $db->lastErrorMsg());
-            }
-
-            if ($db->changes() === 0) {
+            $this->driver->execute($query, $p);
+            if ($this->driver->affectedRows() === 0) {
                 add_log("errors", "No rows affected when $query");
                 return false;
             }
             return true;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             add_log("errors", $e->getMessage());
             return false;
         }
@@ -1382,30 +1264,9 @@ class Db
     private function exec_bind_list_query(string $query, array $bindList, bool $firstOnly = false): array
     {
         try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-            if ($stmt === false) {
-                throw new Exception("Error preparing $query: " . $db->lastErrorMsg());
-            }
-
-            foreach ($bindList as $index => $pair) {
-                $bound = $stmt->bindValue($index + 1, $pair[0], $pair[1]);
-                if ($bound === false) {
-                    throw new Exception("Error binding param " . ($index + 1) . " to $query: " . $db->lastErrorMsg());
-                }
-            }
-
-            $result = $stmt->execute();
-            if ($result === false) {
-                throw new Exception("Error executing $query: " . $db->lastErrorMsg());
-            }
-
-            $arr = [];
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                $arr[] = $row;
-            }
-            return $firstOnly ? $arr[0] ?? [] : $arr;
-        } catch (Exception $e) {
+            $rows = $this->driver->select($query, $bindList);
+            return $firstOnly ? $rows[0] ?? [] : $rows;
+        } catch (Throwable $e) {
             add_error_log($e->getMessage());
             return [];
         }
@@ -1414,31 +1275,9 @@ class Db
     private function exec_read_query(string $query, array $p, bool $firstOnly = false): array
     {
         try {
-            $db = $this->open_db(true);
-            $stmt = $db->prepare($query);
-            if ($stmt === false) {
-                throw new Exception("Error preparing $query: " . $db->lastErrorMsg());
-            }
-
-            $keys = array_keys($p);
-            foreach ($keys as $index => $key) {
-                $bound = $stmt->bindValue($index + 1, $key, $p[$key]);
-                if ($bound === false) {
-                    throw new Exception("Error binding $key to $query: " . $db->lastErrorMsg());
-                }
-            }
-
-            $result = $stmt->execute();
-            if ($result === false) {
-                throw new Exception("Error executing $query: " . $db->lastErrorMsg());
-            }
-
-            $arr = [];
-            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-                $arr[] = $row;
-            }
-            return $firstOnly ? $arr[0] ?? [] : $arr;
-        } catch (Exception $e) {
+            $rows = $this->driver->select($query, $p);
+            return $firstOnly ? $rows[0] ?? [] : $rows;
+        } catch (Throwable $e) {
             add_error_log($e->getMessage());
             return [];
         }
@@ -1446,4 +1285,6 @@ class Db
 
 }
 
-$db = new Db();
+if (!defined('YELLOWTDS_NO_DB_BOOTSTRAP')) {
+    $db = new Db();
+}
