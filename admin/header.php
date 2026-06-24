@@ -3,6 +3,7 @@ require_once __DIR__.'/dates.php';
 require_once __DIR__.'/timezones.php';
 require_once __DIR__.'/../debug.php';
 require_once __DIR__.'/../paths.php';
+require_once __DIR__.'/../auth/Auth.php';
 function get_bases_version(): string
 {
     $basesDir = __DIR__ . "/../bases";
@@ -114,24 +115,27 @@ $headerDateConfig = [
     </div>
     <?php
         $navItems = [
-            'index.php'    => ['Campaigns', 'bi-megaphone'],
-            'dashboard.php' => ['Dashboard', 'bi-speedometer2'],
-            'offers.php'   => ['Offers', 'bi-bullseye'],
-            'landings.php' => ['Landings', 'bi-file-earmark-richtext'],
-            'sources.php'  => ['Sources', 'bi-broadcast'],
-            'networks.php' => ['Networks', 'bi-diagram-3'],
-            'domains.php'  => ['Domains', 'bi-globe2'],
-            'integrations.php' => ['Conversion APIs', 'bi-cloud-upload'],
-            'conversions.php' => ['Conversions', 'bi-graph-up-arrow'],
-            'blacklists.php' => ['Bot Protection', 'bi-shield-shaded'],
-            'rules.php' => ['Rules', 'bi-robot'],
-            'channels.php' => ['Notifications', 'bi-bell'],
+            'index.php'    => ['Campaigns', 'bi-megaphone', 'campaigns.view'],
+            'dashboard.php' => ['Dashboard', 'bi-speedometer2', 'reports.view'],
+            'offers.php'   => ['Offers', 'bi-bullseye', 'offers.view'],
+            'landings.php' => ['Landings', 'bi-file-earmark-richtext', 'landings.view'],
+            'sources.php'  => ['Sources', 'bi-broadcast', 'sources.view'],
+            'networks.php' => ['Networks', 'bi-diagram-3', 'networks.view'],
+            'domains.php'  => ['Domains', 'bi-globe2', 'domains.view'],
+            'integrations.php' => ['Conversion APIs', 'bi-cloud-upload', 'integrations.view'],
+            'conversions.php' => ['Conversions', 'bi-graph-up-arrow', 'conversions.view'],
+            'blacklists.php' => ['Bot Protection', 'bi-shield-shaded', 'blacklists.view'],
+            'rules.php' => ['Rules', 'bi-robot', 'rules.view'],
+            'channels.php' => ['Notifications', 'bi-bell', 'channels.view'],
+            'users.php' => ['Users', 'bi-people', 'users.view'],
+            'roles.php' => ['Roles', 'bi-person-badge', 'roles.view'],
         ];
     ?>
     <div class="entity-nav-area">
         <div class="container-fluid">
             <ul class="entity-nav">
                 <?php foreach ($navItems as $file => $info): ?>
+                    <?php if (isset($info[2]) && !auth_can($info[2])) continue; ?>
                     <li class="<?= $headerPage === $file ? 'active' : '' ?>">
                         <a href="<?= $file ?>"><i class="bi <?= $info[1] ?>"></i> <?= htmlspecialchars($info[0]) ?></a>
                     </li>
