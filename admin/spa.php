@@ -90,9 +90,10 @@ function spa_nav(): array
         ['key' => 'channels',     'label' => 'Notifications', 'icon' => 'bell',        'perm' => 'channels.view'],
         ['key' => 'users',        'label' => 'Users',         'icon' => 'users',       'perm' => 'users.view'],
         ['key' => 'roles',        'label' => 'Roles',         'icon' => 'badge',       'perm' => 'roles.view'],
+        ['key' => 'api',          'label' => 'REST API',      'icon' => 'braces',      'perm' => null],
         ['key' => 'data',         'label' => 'Data',          'icon' => 'database',    'perm' => 'data.view'],
     ];
-    return array_values(array_filter($items, static fn($i) => auth_can($i['perm'])));
+    return array_values(array_filter($items, static fn($i) => $i['perm'] === null || auth_can($i['perm'])));
 }
 
 function spa_permission_map(): array

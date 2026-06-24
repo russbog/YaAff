@@ -1,46 +1,68 @@
-import { ExternalLink } from 'lucide-react';
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { API_BASE } from '@/lib/api';
 
-// Transitional host for specialized admin tools not yet rebuilt natively. The
-// legacy PHP screen is embedded full-bleed and themed by its own stylesheet so
-// no functionality is lost during the migration.
+// In-shell host for deep technical tools that run on the existing PHP engine
+// (campaign / TDS builder, blacklist feeds, data utilities, file editor). The
+// page is loaded chrome-free via ?embed=1 so its classic top bar and nav are
+// suppressed and it blends into the modern shell — the legacy standalone
+// interface is no longer used as an entry point.
 export function LegacyPage({
   title,
   file,
-  description,
+  params,
+  backTo,
 }: {
   title: string;
   file: string;
-  description?: string;
+  params?: Record<string, string | number>;
+  backTo?: string;
 }) {
-  const src = `${API_BASE}${file}`;
+  const navigate = useNavigate();
+  const src = useMemo(() => {
+    const u = new URL(API_BASE + file, window.location.origin);
+    u.searchParams.set('embed', '1');
+    if (params) {
+      for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
+    }
+    return u.toString();
+  }, [file, params]);
+
+  const standalone = useMemo(() => {
+    const u = new URL(API_BASE + file, window.location.origin);
+    if (params) for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
+    return u.toString();
+  }, [file, params]);
+
   return (
     <AppShell
       title={title}
       toolbar={
-        <a href={src} target="_blank" rel="noreferrer">
-          <Button variant="secondary" size="sm">
-            <ExternalLink size={14} /> Open standalone
-          </Button>
-        </a>
+        <div className="flex items-center gap-2">
+          {backTo && (
+            <Button variant="ghost" size="sm" onClick={() => navigate(backTo)}>
+              <ArrowLeft size={14} /> Back
+            </Button>
+          )}
+          <a href={standalone} target="_blank" rel="noreferrer">
+            <Button variant="secondary" size="sm">
+              <ExternalLink size={14} /> Open full screen
+            </Button>
+          </a>
+        </div>
       }
     >
-      <div className="mb-4 flex items-center gap-3">
-        <Badge tone="info">Classic module</Badge>
-        {description && <p className="text-sm text-muted">{description}</p>}
-      </div>
-      <Card className="overflow-hidden p-0">
+      <div className="rounded-lg border border-border overflow-hidden bg-white shadow-soft">
         <iframe
           title={title}
           src={src}
           className="w-full bg-white"
-          style={{ height: 'calc(100vh - 220px)', minHeight: 480 }}
+          style={{ height: 'calc(100vh - 7.5rem)', minHeight: 480 }}
         />
-      </Card>
+      </div>
     </AppShell>
   );
 }

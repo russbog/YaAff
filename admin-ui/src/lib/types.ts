@@ -2,7 +2,7 @@ export interface NavItem {
   key: string;
   label: string;
   icon: string;
-  perm: string;
+  perm: string | null;
 }
 
 export interface StatField {

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Plus, Search, MoreVertical, Pencil, Copy, Trash2, Sliders, ExternalLink, Megaphone } from 'lucide-react';
+import { Plus, Search, MoreVertical, Pencil, Copy, Trash2, Sliders, Megaphone } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { Input, FormRow } from '@/components/ui/Field';
@@ -13,7 +14,7 @@ import { DataTable } from '@/components/data/DataTable';
 import { useToast } from '@/providers/ToastProvider';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
-import { spa, campaignApi, API_BASE } from '@/lib/api';
+import { spa, campaignApi } from '@/lib/api';
 import { fmtStat, toNumber } from '@/lib/format';
 import type { CampaignRow } from '@/lib/types';
 
@@ -26,6 +27,7 @@ type DialogState =
 export function CampaignsPage() {
   const toast = useToast();
   const confirm = useConfirm();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const canManage = useCan()('campaigns.manage');
   const { statFields } = useBootstrap();
@@ -86,8 +88,7 @@ export function CampaignsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const openAdvanced = (row: CampaignRow) =>
-    window.open(`${API_BASE}campsettings.php?campId=${row.id}`, '_blank');
+  const openAdvanced = (row: CampaignRow) => navigate(`/campaign/${row.id}`);
 
   const rows = useMemo(() => {
     const all = data?.rows ?? [];
@@ -217,11 +218,6 @@ export function CampaignsPage() {
             </div>
             <div className="flex items-center gap-2 text-xs text-muted">
               <Badge tone="neutral">{rows.length} campaigns</Badge>
-              <a href={`${API_BASE}index.php`} target="_blank" rel="noreferrer">
-                <Button variant="ghost" size="sm">
-                  <ExternalLink size={13} /> Classic view
-                </Button>
-              </a>
             </div>
           </div>
 

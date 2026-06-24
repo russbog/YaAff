@@ -6,6 +6,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { ConversionsPage } from './pages/ConversionsPage';
 import { EntityPage } from './pages/EntityPage';
 import { LegacyPage } from './pages/LegacyPage';
+import { CampaignSettingsPage } from './pages/CampaignSettingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 const ENTITY_ROUTES = [
@@ -29,6 +30,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Navigate to={`/${home}`} replace />} />
       <Route path="/campaigns" element={<CampaignsPage />} />
+      <Route path="/campaign/:id" element={<CampaignSettingsPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/reports" element={<ReportsPage />} />
       <Route path="/conversions" element={<ConversionsPage />} />
@@ -37,24 +39,10 @@ export default function App() {
       ))}
       <Route
         path="/blacklists"
-        element={
-          <LegacyPage
-            title="Bot Protection"
-            file="blacklists.php"
-            description="Blacklist feeds, offline matching and scheduled refresh."
-          />
-        }
+        element={<LegacyPage title="Bot Protection" file="blacklists.php" />}
       />
-      <Route
-        path="/data"
-        element={
-          <LegacyPage
-            title="Data"
-            file="data.php"
-            description="Retention, backups and database utilities."
-          />
-        }
-      />
+      <Route path="/data" element={<LegacyPage title="Data" file="data.php" />} />
+      <Route path="/api" element={<LegacyPage title="REST API" file="api.php" />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

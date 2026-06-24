@@ -15,6 +15,7 @@ import {
   Users,
   BadgeCheck,
   Database,
+  Braces,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -35,6 +36,7 @@ const map: Record<string, LucideIcon> = {
   users: Users,
   badge: BadgeCheck,
   database: Database,
+  braces: Braces,
 };
 
 export function NavIcon({ name, size = 18 }: { name: string; size?: number }) {
