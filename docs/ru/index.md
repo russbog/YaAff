@@ -32,6 +32,7 @@
 - [Фаза 6: Бот-защита — авто-обновляемые IP/UA блэклисты](phase-6-bot-protection.md)
 - [Фаза 7: Отчётность — real-time дашборд, графики и экспорт по расписанию](phase-7-reporting.md)
 - [Фаза 8: Движок правил + планировщик](phase-8-rules-scheduler.md)
+- [Фаза 9: Уведомления (Telegram, Webhook, Email)](phase-9-notifications.md)
 
 ## С чего начать
 
