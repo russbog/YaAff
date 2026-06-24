@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../entities/Integration.php';
+require_once __DIR__ . '/../tokens/TokenRegistry.php';
 
 /**
  * Generic Conversion-API sender. Builds an HTTP request from an
@@ -28,41 +29,19 @@ class ConversionApiSender
      */
     public static function buildTokens(array $click, string $status, float $payout, float $revenue, string $currency, array $request = []): array
     {
-        $tokens = [];
-        foreach ($click as $k => $v) {
-            if ($k === 'params' || $k === 'path' || $k === 'events' || $k === 'leaddata') {
-                continue;
-            }
-            if (is_scalar($v) || $v === null) {
-                $tokens[(string)$k] = $v;
-            }
-        }
-
-        $params = $click['params'] ?? [];
-        if (is_string($params)) {
-            $decoded = json_decode($params, true);
-            $params = is_array($decoded) ? $decoded : [];
-        }
-        if (is_array($params)) {
-            foreach ($params as $pk => $pv) {
-                if (is_scalar($pv) || $pv === null) {
-                    $tokens['c.' . $pk] = $pv;
-                }
-            }
-        }
-
-        $tokens['status'] = $status;
-        $tokens['payout'] = $payout;
-        $tokens['revenue'] = $revenue;
-        $tokens['currency'] = $currency;
-        $tokens['time'] = time();
-
+        $overrides = [
+            'status' => $status,
+            'payout' => $payout,
+            'revenue' => $revenue,
+            'currency' => $currency,
+            'time' => time(),
+        ];
         foreach ($request as $rk => $rv) {
             if (is_scalar($rv) || $rv === null) {
-                $tokens[(string)$rk] = $rv;
+                $overrides[(string)$rk] = $rv;
             }
         }
-        return $tokens;
+        return TokenRegistry::fromClick($click, $overrides)->toArray();
     }
 
     /**

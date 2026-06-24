@@ -27,6 +27,7 @@
 - [Фаза 1: Первоклассные сущности (Сети, Источники, Офферы, Лендинги)](phase-1-entities.md)
 - [Фаза 2: Режимы трекинга, расширенные фильтры и типы потоков](phase-2-routing-filters-flows.md)
 - [Фаза 3: Конверсии и Conversion API](phase-3-conversions-api.md)
+- [Фаза 4: Единая токен-система (TokenRegistry)](phase-4-token-system.md)
 
 ## С чего начать
 
