@@ -61,13 +61,7 @@ switch ($action) {
             $input['identifier'] = $identifier;
         }
         if (isset($input['black']['flows']) && is_array($input['black']['flows'])) {
-            foreach ($input['black']['flows'] as &$flow) {
-                foreach (($flow['steps'] ?? []) as &$step) {
-                    normalize_step_weights($step);
-                }
-                unset($step);
-            }
-            unset($flow);
+            $input['black']['flows'] = normalize_flow_step_weights($input['black']['flows']);
         }
         $s = mergeSettingsRecursive($s, $input);
         $saveRes = $db->save_campaign_settings($campId, $s);
@@ -89,6 +83,16 @@ function send_camp_result($msg,$error=false): void
     http_response_code(200);
     $json = json_encode($res);
     echo $json;
+}
+
+function normalize_flow_step_weights(array $flows): array {
+    foreach ($flows as $flowIndex => $flow) {
+        foreach (($flow['steps'] ?? []) as $stepIndex => $step) {
+            normalize_step_weights($step);
+            $flows[$flowIndex]['steps'][$stepIndex] = $step;
+        }
+    }
+    return $flows;
 }
 
 function normalize_step_weights(array &$step): void {
