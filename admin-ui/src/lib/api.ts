@@ -200,6 +200,59 @@ export const conversionsApi = {
   },
 };
 
+export interface DomainCheck {
+  domain: string;
+  wildcard: boolean;
+  resolves: boolean;
+  cloudflare: boolean;
+  ip: string | null;
+  serverIp: string | null;
+  error: string | null;
+}
+
+export const domainApi = {
+  // DNS / Cloudflare detection (domaincheck.php). Returns the resolved A
+  // record and whether it points at Cloudflare / the server.
+  check: async (domain: string): Promise<DomainCheck> => {
+    const res = await fetch(url('domaincheck.php', { domain }), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+    const data = (await res.json()) as DomainCheck & { error?: string };
+    if (!res.ok) throw new ApiError(data.error || `HTTP ${res.status}`, res.status);
+    return data;
+  },
+};
+
+export interface CloudflareResult {
+  ok: boolean;
+  http_code?: number;
+  error: string | null;
+}
+
+// cloudflare.php returns {ok:false} for legitimate verification failures, so we
+// surface the envelope instead of throwing on ok:false (network/HTTP errors
+// still throw).
+async function cfCall(action: string, id: number): Promise<CloudflareResult> {
+  const res = await fetch(url('cloudflare.php', { action, id }), {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  });
+  const text = await res.text();
+  let data: CloudflareResult;
+  try {
+    data = JSON.parse(text) as CloudflareResult;
+  } catch {
+    throw new ApiError(text.trim() || `Cloudflare request failed (HTTP ${res.status})`, res.status);
+  }
+  return data;
+}
+
+export const cloudflareApi = {
+  verifyToken: (id: number) => cfCall('verify_token', id),
+  createRecord: (id: number) => cfCall('create_record', id),
+};
+
 export type FolderType = 'landing' | 'white';
 
 export const folderApi = {

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Plus, MoreVertical, Pencil, Trash2, Search, FolderOpen, UploadCloud } from 'lucide-react';
+import { Plus, MoreVertical, Pencil, Trash2, Search, FolderOpen, UploadCloud, Globe } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
@@ -13,6 +13,7 @@ import { DataTable } from '@/components/data/DataTable';
 import { EntityForm, type FieldValues } from '@/components/entity/EntityForm';
 import { FileManager } from '@/components/files/FileManager';
 import { ZipUploadModal } from '@/components/files/ZipUploadModal';
+import { DomainToolsModal } from '@/components/domains/DomainToolsModal';
 import { useToast } from '@/providers/ToastProvider';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
@@ -32,8 +33,10 @@ export function EntityPage({ type }: { type: string }) {
   const [editing, setEditing] = useState<EntityRecord | null | undefined>(undefined); // undefined = closed
   const valuesRef = useRef<FieldValues>({});
   const isLandings = type === 'landings';
+  const isDomains = type === 'domains';
   const [filesFolder, setFilesFolder] = useState<string | null>(null);
   const [zipOpen, setZipOpen] = useState(false);
+  const [domainTools, setDomainTools] = useState<EntityRecord | null>(null);
 
   const landingFolder = (r: EntityRecord): string | null => {
     const s = (r.settings ?? {}) as { type?: string; path?: string };
@@ -116,6 +119,15 @@ export function EntityPage({ type }: { type: string }) {
                       },
                     ]
                   : []),
+                ...(isDomains
+                  ? [
+                      {
+                        label: 'DNS / Cloudflare',
+                        icon: <Globe size={14} />,
+                        onClick: () => setDomainTools(r),
+                      },
+                    ]
+                  : []),
                 ...(canManage
                   ? [
                       {
@@ -141,7 +153,7 @@ export function EntityPage({ type }: { type: string }) {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canManage, schema, isLandings],
+    [canManage, schema, isLandings, isDomains],
   );
 
   if (!schema) {
@@ -250,6 +262,9 @@ export function EntityPage({ type }: { type: string }) {
       )}
       {filesFolder && (
         <FileManager folder={filesFolder} onClose={() => setFilesFolder(null)} />
+      )}
+      {domainTools && (
+        <DomainToolsModal domain={domainTools} onClose={() => setDomainTools(null)} />
       )}
     </AppShell>
   );
