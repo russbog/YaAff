@@ -130,6 +130,7 @@ $headerDateConfig = [
             'users.php' => ['Users', 'bi-people', 'users.view'],
             'roles.php' => ['Roles', 'bi-person-badge', 'roles.view'],
             'api.php' => ['REST API', 'bi-braces', null],
+            'data.php' => ['Data', 'bi-database', 'data.view'],
         ];
     ?>
     <div class="entity-nav-area">

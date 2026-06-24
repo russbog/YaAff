@@ -5,6 +5,7 @@ require_once __DIR__ . "/../logging.php";
 require_once __DIR__ . "/../settings.php";
 require_once __DIR__ . "/../paths.php";
 require_once __DIR__ . "/drivers/SqliteDriver.php";
+require_once __DIR__ . "/drivers/MysqlDriver.php";
 require_once __DIR__ . "/Migrator.php";
 require_once __DIR__ . "/../domains/DomainMatcher.php";
 
@@ -22,6 +23,18 @@ class Db
         }
 
         global $cloSettings;
+
+        if (($cloSettings['dbDriver'] ?? 'sqlite') === 'mysql') {
+            $this->driver = new MysqlDriver($cloSettings['mysql'] ?? []);
+            if (empty($this->driver->tableColumns('campaigns'))) {
+                if (!$this->create_new_db())
+                    die("Couldn't initialize the MySQL database! Read logs for additional info.");
+            }
+            $this->ensure_schema_migrations();
+            $this->run_migrations();
+            return;
+        }
+
         $path = $dbPath ?? __DIR__ . '/' . $cloSettings['dbConnection'];
         $needsCreate = !file_exists($path);
         $this->driver = new SqliteDriver($path);

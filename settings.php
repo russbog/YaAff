@@ -21,6 +21,25 @@ $cloSettings =
 //downloading your database, or just rename the db file so security through obscurity will work! :-D
 "dbConnection" => "clicks.db",
 
+//database backend: "sqlite" (default) or "mysql" (MySQL/MariaDB) for scale.
+//the schema is authored once in SQLite dialect and translated automatically.
+"dbDriver" => "sqlite",
+
+//connection details used only when "dbDriver" is "mysql". Keep credentials out
+//of version control (use a local override or environment as appropriate).
+"mysql" => [
+    "host" => "127.0.0.1",
+    "port" => 3306,
+    "database" => "yaaff",
+    "username" => "yaaff",
+    "password" => "",
+    "socket" => "",
+],
+
+//data retention in days for high-volume tables (clicks/blocked/trafficback and
+//the audit logs). 0 disables automatic pruning. Run bin/run_retention.php (cron).
+"retentionDays" => 0,
+
 //if you want to automatically update MaxMind's geobases 
 //then go to maxmind.com, register, get API key and put it here
 "maxMindKey" => "",
