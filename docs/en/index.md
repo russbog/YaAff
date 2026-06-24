@@ -28,3 +28,4 @@ This is the main product, admin, and runtime documentation for YellowCloaker.
 - [Phase 2: Routing Modes, Extended Filters & Flow Types](phase-2-routing-filters-flows.md)
 - [Phase 3: Conversions & Conversion API](phase-3-conversions-api.md)
 - [Phase 4: Unified Token System (TokenRegistry)](phase-4-token-system.md)
+- [Phase 5: Domains Management + Cloudflare + Domain Pool](phase-5-domains.md)

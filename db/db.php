@@ -6,6 +6,7 @@ require_once __DIR__ . "/../settings.php";
 require_once __DIR__ . "/../paths.php";
 require_once __DIR__ . "/drivers/SqliteDriver.php";
 require_once __DIR__ . "/Migrator.php";
+require_once __DIR__ . "/../domains/DomainMatcher.php";
 
 class Db
 {
@@ -1197,6 +1198,9 @@ class Db
             $parsedUrl['host'] . ":" . $parsedUrl['port'] :
             $parsedUrl['host'];
 
+        $aliasMap = $this->domain_alias_map();
+        $canonical = DomainMatcher::resolveAlias($aliasMap, $domain);
+
         $query = "SELECT * FROM campaigns";
         $campaigns = $this->exec_read_query($query, []);
         foreach ($campaigns as $campaign) {
@@ -1207,7 +1211,8 @@ class Db
             if (!isset($settings['domains'])) {
                 continue;
             }
-            if ($this->match_domain($settings['domains'], $domain)) {
+            if ($this->match_domain($settings['domains'], $domain)
+                || ($canonical !== $domain && $this->match_domain($settings['domains'], $canonical))) {
                 add_log("trace", "Found matching campaign for domain $domain: " . $campaign['id']);
                 $campaign['settings'] = $settings;
                 return $campaign;
@@ -1216,21 +1221,25 @@ class Db
         return false;
     }
 
+    /**
+     * Alias map (alias host => canonical host) from the domain pool. Returns an
+     * empty map when the domains table is absent (older installs / pre-migration)
+     * so existing campaign domain matching keeps working unchanged.
+     *
+     * @return array<string,string>
+     */
+    private function domain_alias_map(): array
+    {
+        if (empty($this->driver->tableColumns('domains'))) {
+            return [];
+        }
+        $rows = $this->driver->select("SELECT name, settings FROM domains");
+        return DomainMatcher::buildAliasMap($rows);
+    }
+
     private function match_domain($domains, $domainToMatch): bool
     {
-        foreach ($domains as $domain) {
-            if ($domain === $domainToMatch) {
-                return true;
-            } elseif (strpos($domain, '*') !== false) {
-                // Convert wildcard domain to a regex pattern
-                $pattern = str_replace('.', '\.', $domain);
-                $pattern = str_replace('*', '.*', $pattern);
-                if (preg_match('/^' . $pattern . '$/', $domainToMatch)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return DomainMatcher::matches(is_array($domains) ? $domains : [], (string)$domainToMatch);
     }
 
     public function rename_campaign(int $id, string $name): bool
