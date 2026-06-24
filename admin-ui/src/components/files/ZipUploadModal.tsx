@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input, FormRow } from '@/components/ui/Field';
 import { useToast } from '@/providers/ToastProvider';
-import { folderApi } from '@/lib/api';
+import { folderApi, type FolderType } from '@/lib/api';
 
 const FOLDER_RE = /^[a-zA-Z0-9_\-.]+$/;
 
@@ -16,10 +16,12 @@ export function ZipUploadModal({
   open,
   onClose,
   onUploaded,
+  type = 'landing',
 }: {
   open: boolean;
   onClose: () => void;
   onUploaded: (folder: string) => void;
+  type?: FolderType;
 }) {
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -32,7 +34,7 @@ export function ZipUploadModal({
   };
 
   const mut = useMutation({
-    mutationFn: () => folderApi.uploadZip(folder.trim(), file as File),
+    mutationFn: () => folderApi.uploadZip(folder.trim(), file as File, type),
     onSuccess: () => {
       toast.success(`Landing “${folder.trim()}” uploaded`);
       const f = folder.trim();

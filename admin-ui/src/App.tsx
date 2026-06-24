@@ -5,8 +5,10 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { ConversionsPage } from './pages/ConversionsPage';
 import { EntityPage } from './pages/EntityPage';
-import { LegacyPage } from './pages/LegacyPage';
 import { CampaignSettingsPage } from './pages/CampaignSettingsPage';
+import { BotProtectionPage } from './pages/BotProtectionPage';
+import { DataPage } from './pages/DataPage';
+import { ApiDocsPage } from './pages/ApiDocsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 const ENTITY_ROUTES = [
@@ -37,12 +39,9 @@ export default function App() {
       {ENTITY_ROUTES.map((type) => (
         <Route key={type} path={`/${type}`} element={<EntityPage type={type} />} />
       ))}
-      <Route
-        path="/blacklists"
-        element={<LegacyPage title="Bot Protection" file="blacklists.php" />}
-      />
-      <Route path="/data" element={<LegacyPage title="Data" file="data.php" />} />
-      <Route path="/api" element={<LegacyPage title="REST API" file="api.php" />} />
+      <Route path="/blacklists" element={<BotProtectionPage />} />
+      <Route path="/data" element={<DataPage />} />
+      <Route path="/api" element={<ApiDocsPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
