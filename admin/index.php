@@ -17,6 +17,14 @@ require_once __DIR__ . '/clmns.php';
 require_once __DIR__ . '/tablecolumns.php';
 require_once __DIR__ . '/dates.php';
 
+// The classic campaigns page has been superseded by the modern SPA (app.php),
+// which is now the single admin interface. Redirect to it whenever the SPA
+// build is present; fall back to the classic page only if it is missing.
+if (is_file(__DIR__ . '/app/index.html')) {
+    header('Location: app.php');
+    exit();
+}
+
 $gs = $db->get_common_settings();
 $savedFilters = $gs['statistics']['campaignsFilters'] ?? [];
 $hasActiveFilters = !empty($savedFilters) && !empty($savedFilters['rules']);

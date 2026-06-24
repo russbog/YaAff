@@ -4,6 +4,7 @@ require_once __DIR__.'/timezones.php';
 require_once __DIR__.'/../debug.php';
 require_once __DIR__.'/../paths.php';
 require_once __DIR__.'/../auth/Auth.php';
+require_once __DIR__.'/embedmode.php';
 function get_bases_version(): string
 {
     $basesDir = __DIR__ . "/../bases";
@@ -66,6 +67,7 @@ $headerDateConfig = [
     'options' => get_timezone_options(),
 ];
 ?>
+<?php if (!yaaff_is_embed()): ?>
 <div class="header-advance-area">
     <div class="header-top-area">
         <div class="container-fluid">
@@ -111,6 +113,10 @@ $headerDateConfig = [
                                     </span>
                                 </a>
                                 <?php endif; ?>
+                                <a class="nav-link" href="app.php" title="Open the new high-performance admin">
+                                    <i class="bi bi-stars"></i>
+                                    <span>New UI</span>
+                                </a>
                                 <a class="nav-link" href="#" onclick="checkForUpdates(); return false;">
                                     <i class="bi bi-cloud-arrow-down"></i>
                                     <span>Update</span>
@@ -161,6 +167,7 @@ $headerDateConfig = [
     </div>
 
 </div>
+<?php endif; ?>
 <script id="headerDateConfig" type="application/json">
     <?=json_encode($headerDateConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
 </script>

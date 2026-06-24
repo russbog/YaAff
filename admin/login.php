@@ -122,7 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                     const data = await response.json();
                     if (data.success) {
-                        window.location.href = 'index.php';
+                        window.location.href = 'app.php';
                     } else if (data.locked) {
                         startLockout(data.retry_after);
                     } else {
