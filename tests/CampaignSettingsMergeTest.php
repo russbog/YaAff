@@ -41,4 +41,19 @@ final class CampaignSettingsMergeTest extends TestCase
         $this->assertSame('google.com', $step['redirect']['urls'][0]['label']);
         $this->assertSame(302, $step['redirect']['type']);
     }
+    public function testFlowStepWeightsAreNormalizedInsideFlowLists(): void
+    {
+        $flows = [[
+            'name' => 'Flow 1',
+            'steps' => [[
+                'action' => 'redirect',
+                'weights' => [0],
+            ]],
+        ]];
+
+        $normalized = normalize_flow_step_weights($flows);
+
+        $this->assertSame([100], $normalized[0]['steps'][0]['weights']);
+    }
+
 }
