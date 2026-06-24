@@ -30,3 +30,4 @@ This is the main product, admin, and runtime documentation for YellowCloaker.
 - [Phase 4: Unified Token System (TokenRegistry)](phase-4-token-system.md)
 - [Phase 5: Domains Management + Cloudflare + Domain Pool](phase-5-domains.md)
 - [Phase 6: Bot Protection — Auto-updated IP/UA Blacklists](phase-6-bot-protection.md)
+- [Phase 7: Reporting — Real-time Dashboard, Charts & Scheduled Exports](phase-7-reporting.md)
