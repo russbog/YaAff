@@ -12,7 +12,7 @@ class Tds
     public static function getAction(): CloakerAction
     {
         global $db;
-        $dbCamp = $db->get_campaign_by_domain();
+        $dbCamp = $db->get_campaign_by_request();
         if ($dbCamp === false || self::isPaused($dbCamp)) {
             $action = traficback(FiltrationCore::get_click_params());
         } else {
@@ -43,7 +43,7 @@ class Tds
     public static function getJsAction(array $prefill): JsAction
     {
         global $db;
-        $dbCamp = $db->get_campaign_by_domain();
+        $dbCamp = $db->get_campaign_by_request();
         if ($dbCamp === false || self::isPaused($dbCamp)) {
             $action = traficback(FiltrationCore::get_click_params($prefill));
         } else {
@@ -80,7 +80,7 @@ class Tds
     public static function processJsCheck(): JsAction
     {
         global $db;
-        $dbCamp = $db->get_campaign_by_domain();
+        $dbCamp = $db->get_campaign_by_request();
         if ($dbCamp === false || self::isPaused($dbCamp)) { //campaign already deleted, domain changed, or paused
             if (DebugMethods::on()) {
                 $action = new JsAction("traficback", "js", "console.log('Debug: No campaign found for this domain!');");

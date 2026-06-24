@@ -28,6 +28,37 @@ class InstallerScriptTest extends TestCase
         $this->assertStringContainsString('extension_loaded("maxminddb")', $this->script);
     }
 
+    public function testInstallerKeepsRuntimeWorkingWithoutMaxMindKey(): void
+    {
+        $this->assertStringContainsString('download_dbip_lite_databases "$app_dir"', $this->script);
+        $this->assertStringContainsString('https://download.db-ip.com/free/dbip-${kind}-lite-${month}.mmdb.gz', $this->script);
+        $this->assertStringContainsString('DB-IP Lite (CC BY 4.0) - https://db-ip.com', $this->script);
+        $this->assertStringContainsString('MaxMind and DB-IP Lite databases were not downloaded', $this->script);
+        $this->assertStringContainsString('GeoIP fields will be saved as Unknown until these files exist; traffic routing will continue.', $this->script);
+    }
+
+    public function testAdminGeoBasesUpdateFallsBackToDbIpLiteWithoutMaxMindKey(): void
+    {
+        $source = (string) file_get_contents(__DIR__ . '/../bases/update.php');
+
+        $this->assertStringContainsString('downloadDbIpLiteDatabases(__DIR__)', $source);
+        $this->assertStringContainsString('https://download.db-ip.com/free/dbip-$kind-lite-$month.mmdb.gz', $source);
+        $this->assertStringContainsString('DB-IP Lite (CC BY 4.0) - https://db-ip.com', $source);
+        $this->assertStringContainsString('GeoIP will remain Unknown, traffic routing will continue', $source);
+    }
+
+    public function testDbIpLiteAttributionIsDocumentedAndRendered(): void
+    {
+        $header = (string) file_get_contents(__DIR__ . '/../admin/header.php');
+        $readme = (string) file_get_contents(__DIR__ . '/../README.md');
+        $readmeEn = (string) file_get_contents(__DIR__ . '/../README.en.md');
+
+        $this->assertStringContainsString('IP Geolocation by DB-IP', $header);
+        $this->assertStringContainsString('https://db-ip.com', $header);
+        $this->assertStringContainsString('CC BY 4.0', $readme);
+        $this->assertStringContainsString('CC BY 4.0', $readmeEn);
+    }
+
     public function testGeoIpReaderAvoidsPharWhenMaxMindExtensionIsLoaded(): void
     {
         $source = (string) file_get_contents(__DIR__ . '/../bases/ipcountry.php');

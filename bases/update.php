@@ -12,6 +12,7 @@ function downloadAndExtractMaxMindDB($licenseKey, $directory, $editionIds): stri
         $result .= downloadMaxMindDB($licenseKey, $directory, $editionId) . "\n";
     }
     save_update_version();
+    save_geoip_source('MaxMind GeoLite2');
     return $result;
 }
 
@@ -77,11 +78,72 @@ function downloadMaxMindDB($licenseKey, $directory, $editionId): string
     }
 }
 
+function downloadDbIpLiteDatabases(string $directory): string
+{
+    $result = "";
+    $result .= downloadDbIpLiteDatabase($directory, 'country', 'GeoLite2-Country') . "\n";
+    $result .= downloadDbIpLiteDatabase($directory, 'asn', 'GeoLite2-ASN') . "\n";
+    if (is_readable("$directory/GeoLite2-Country.mmdb") && is_readable("$directory/GeoLite2-ASN.mmdb")) {
+        save_update_version();
+        save_geoip_source('DB-IP Lite (CC BY 4.0) - https://db-ip.com');
+        $result .= "Using DB-IP Lite under CC BY 4.0. Keep attribution visible in YaAff.\n";
+    }
+    return $result;
+}
+
+function downloadDbIpLiteDatabase(string $directory, string $kind, string $targetName): string
+{
+    $months = [
+        (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m'),
+        (new DateTime('first day of last month', new DateTimeZone('UTC')))->format('Y-m'),
+    ];
+
+    foreach ($months as $month) {
+        $url = "https://download.db-ip.com/free/dbip-$kind-lite-$month.mmdb.gz";
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'YaAff geobases updater');
+        $output = curl_exec($ch);
+        $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($output === false || $status >= 400) {
+            add_log('trace', "DB-IP Lite $kind download failed for $month: HTTP $status $error");
+            continue;
+        }
+
+        $content = gzdecode($output);
+        if ($content === false) {
+            add_log('trace', "DB-IP Lite $kind archive for $month could not be decompressed");
+            continue;
+        }
+
+        file_put_contents("$directory/$targetName.mmdb", $content);
+        return "$targetName processed from DB-IP Lite $month!";
+    }
+
+    return "$targetName DB-IP Lite download failed; GeoIP will fall back to Unknown.";
+}
+
 function save_update_version(): void
 {
     $dateObj = new DateTime();
     $formattedDate = $dateObj->format('d.m.y');
     file_put_contents(__DIR__ . "/update.txt", $formattedDate);
+}
+
+function save_geoip_source(string $source): void
+{
+    file_put_contents(__DIR__ . "/source.txt", $source);
+}
+
+function dbip_lite_databases_available(): bool
+{
+    return is_readable(__DIR__ . '/GeoLite2-Country.mmdb')
+        && is_readable(__DIR__ . '/GeoLite2-ASN.mmdb');
 }
 
 function send_update_result($msg, $error = false): void
@@ -99,7 +161,11 @@ if (!$passOk) {
 }
 
 if (empty($cloSettings["maxMindKey"])) {
-    send_update_result("MaxMind key not set, edit 'settings.php'!", true);
+    $result = downloadDbIpLiteDatabases(__DIR__);
+    $result .= dbip_lite_databases_available()
+        ? "MaxMind key not set; DB-IP Lite fallback is active."
+        : "MaxMind key not set and DB-IP Lite fallback failed; GeoIP will remain Unknown, traffic routing will continue.";
+    send_update_result($result, false);
     exit;
 }
 

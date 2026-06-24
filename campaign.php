@@ -9,6 +9,7 @@ class Campaign implements JsonSerializable
     public array $domains;
     public bool $saveUserFlow;
     public string $apiKey;
+    public string $identifier;
 
     public WhiteSettings $white;
     public BlackSettings $black;
@@ -23,6 +24,7 @@ class Campaign implements JsonSerializable
         $this->domains = $s['domains'];
         $this->saveUserFlow = $s['saveuserflow'];
         $this->apiKey = $s['apikey'];
+        $this->identifier = (string)($s['identifier'] ?? '');
 
         $this->white = WhiteSettings::fromArray($s['white']);
         $this->black = BlackSettings::fromArray($s['black']);
@@ -38,6 +40,7 @@ class Campaign implements JsonSerializable
             "domains" => $this->domains,
             "saveuserflow" => $this->saveUserFlow,
             "apikey" => $this->apiKey,
+            "identifier" => $this->identifier,
             "white" => $this->white,
             "black" => $this->black,
             "statistics" => $this->statistics,

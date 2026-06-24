@@ -50,6 +50,16 @@ switch ($action) {
         if (!is_array($input)) {
             return send_camp_result("Error: invalid JSON body!", true);
         }
+        if (array_key_exists('identifier', $input)) {
+            $identifier = $db->normalize_campaign_identifier((string)$input['identifier']);
+            if ($identifier === '') {
+                return send_camp_result("Error: campaign identifier can not be empty!", true);
+            }
+            if (!$db->campaign_identifier_is_unique($identifier, (int)$campId)) {
+                return send_camp_result("Error: campaign identifier already exists!", true);
+            }
+            $input['identifier'] = $identifier;
+        }
         if (isset($input['black']['flows']) && is_array($input['black']['flows'])) {
             foreach ($input['black']['flows'] as &$flow) {
                 foreach (($flow['steps'] ?? []) as &$step) {

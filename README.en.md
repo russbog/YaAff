@@ -49,7 +49,7 @@ For a clean Debian/Ubuntu VPS, use the installer from this repository:
 curl -fsSL https://raw.githubusercontent.com/russbog/YaAff/multipleconfigs/install.sh | sudo bash
 ```
 
-The script asks for a domain, verifies DNS points to the VPS, installs nginx/PHP/HTTPS, installs the MaxMind C extension, and offers to download GeoLite2 databases.
+The script asks for a domain, verifies DNS points to the VPS, installs nginx/PHP/HTTPS, installs the MaxMind C extension, and offers to download GeoLite2 databases. If no MaxMind key is provided, the installer automatically tries the free DB-IP Lite Country/ASN databases. DB-IP Lite is distributed under CC BY 4.0, so YaAff shows the `IP Geolocation by DB-IP` attribution in the admin UI. If databases are missing, corrupt, or an IP is not covered, GeoIP fields are saved as `Unknown` and traffic routing continues.
 
 To add domains to an existing instance:
 

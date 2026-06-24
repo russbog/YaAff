@@ -51,7 +51,7 @@ YaAff — профессиональная система управления a
 curl -fsSL https://raw.githubusercontent.com/russbog/YaAff/multipleconfigs/install.sh | sudo bash
 ```
 
-Скрипт спросит домен, проверит DNS-привязку к VPS, поставит nginx/PHP/HTTPS, C-расширение MaxMind и предложит скачать GeoLite2 базы.
+Скрипт спросит домен, проверит DNS-привязку к VPS, поставит nginx/PHP/HTTPS, C-расширение MaxMind и предложит скачать GeoLite2 базы. Если ключ MaxMind не указан, установщик автоматически попробует скачать бесплатные DB-IP Lite Country/ASN базы. DB-IP Lite распространяется по CC BY 4.0, поэтому YaAff показывает attribution `IP Geolocation by DB-IP` в админке. Если базы отсутствуют, битые или IP не найден, GeoIP поля сохраняются как `Unknown`, а маршрутизация трафика продолжает работать.
 
 Чтобы добавить к уже установленному инстансу несколько новых доменов:
 

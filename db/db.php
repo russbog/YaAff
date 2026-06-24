@@ -1159,8 +1159,48 @@ class Db
         $settingsJson = file_get_contents(__DIR__ . '/default.json');
         $settings = json_decode($settingsJson, true);
         $settings['apikey'] = $this->generate_api_key();
+        $settings['identifier'] = $this->generate_unique_campaign_identifier();
         $settingsJson = json_encode($settings);
         return $this->exec_write_query($query, [$name => DbDriver::TEXT, $settingsJson => DbDriver::TEXT], true);
+    }
+
+    public function normalize_campaign_identifier(string $identifier): string
+    {
+        $identifier = trim($identifier);
+        $identifier = trim($identifier, "/ \t\n\r\0\x0B");
+        $identifier = preg_replace('/\s+/', '-', $identifier) ?? '';
+        return preg_replace('/[^A-Za-z0-9_-]/', '', $identifier) ?? '';
+    }
+
+    public function campaign_identifier_is_unique(string $identifier, ?int $exceptId = null): bool
+    {
+        $identifier = $this->normalize_campaign_identifier($identifier);
+        if ($identifier === '') {
+            return false;
+        }
+
+        foreach ($this->exec_read_query("SELECT id, settings FROM campaigns", []) as $campaign) {
+            if ($exceptId !== null && (int)$campaign['id'] === $exceptId) {
+                continue;
+            }
+            $settings = json_decode((string)($campaign['settings'] ?? ''), true);
+            if (!is_array($settings)) {
+                continue;
+            }
+            if (($settings['identifier'] ?? '') === $identifier) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private function generate_unique_campaign_identifier(): string
+    {
+        do {
+            $identifier = strtolower(substr(bin2hex(random_bytes(5)), 0, 8));
+        } while (!$this->campaign_identifier_is_unique($identifier));
+
+        return $identifier;
     }
 
     private function generate_api_key(): string
@@ -1190,9 +1230,24 @@ class Db
 
     public function clone_campaign($id): bool|int
     {
-        $query = "INSERT INTO campaigns (name, settings)
-                  SELECT name || ' (Clone)', settings FROM campaigns WHERE id = :id";
-        return $this->exec_write_query($query, [$id => DbDriver::INT], true);
+        $query = "SELECT name, settings FROM campaigns WHERE id = :id";
+        $campaign = $this->exec_read_query($query, [$id => DbDriver::INT], true);
+        if (empty($campaign)) {
+            return false;
+        }
+
+        $settings = json_decode((string)$campaign['settings'], true);
+        if (!is_array($settings)) {
+            return false;
+        }
+        $settings['identifier'] = $this->generate_unique_campaign_identifier();
+
+        $insertQuery = "INSERT INTO campaigns (name, settings) VALUES (:name, :settings)";
+        return $this->exec_write_query(
+            $insertQuery,
+            [($campaign['name'] . ' (Clone)') => DbDriver::TEXT, json_encode($settings) => DbDriver::TEXT],
+            true
+        );
     }
 
     public function get_campaign_name(int $id): string
@@ -1213,7 +1268,62 @@ class Db
         $query = "SELECT settings FROM campaigns WHERE id = :id";
         $arr = $this->exec_read_query($query, [$id => DbDriver::INT], true);
         $settings = json_decode($arr['settings'], true);
+        if (is_array($settings) && empty($settings['identifier'])) {
+            $settings['identifier'] = $this->generate_unique_campaign_identifier();
+            $this->save_campaign_settings($id, $settings);
+        }
         return $settings;
+    }
+
+    public function get_campaign_by_request(): array|bool
+    {
+        $identifier = $this->campaign_identifier_from_request();
+        if ($identifier !== '') {
+            return $this->get_campaign_by_identifier($identifier);
+        }
+
+        return $this->get_campaign_by_domain();
+    }
+
+    private function campaign_identifier_from_request(): string
+    {
+        $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+        if (!is_string($path)) {
+            return '';
+        }
+
+        $segments = array_values(array_filter(explode('/', $path), static fn($part) => $part !== ''));
+        if (empty($segments)) {
+            return '';
+        }
+
+        return $this->normalize_campaign_identifier(rawurldecode($segments[0]));
+    }
+
+    public function get_campaign_by_identifier(string $identifier): array|bool
+    {
+        $identifier = $this->normalize_campaign_identifier($identifier);
+        if ($identifier === '') {
+            return false;
+        }
+
+        $query = "SELECT * FROM campaigns";
+        $campaigns = $this->exec_read_query($query, []);
+        foreach ($campaigns as $campaign) {
+            if (empty($campaign['settings'])) {
+                continue;
+            }
+            $settings = json_decode($campaign['settings'], true);
+            if (!is_array($settings)) {
+                continue;
+            }
+            if (($settings['identifier'] ?? '') === $identifier) {
+                add_log("trace", "Found matching campaign for identifier $identifier: " . $campaign['id']);
+                $campaign['settings'] = $settings;
+                return $campaign;
+            }
+        }
+        return false;
     }
 
     public function get_campaign_by_domain(): array|bool
@@ -1346,10 +1456,10 @@ class Db
 
         $selectClause = implode(',', $this->get_stats_select_parts($selectFields));
         $query = "
-        SELECT cmp.id, cmp.name, $selectClause
+        SELECT cmp.id, cmp.name, cmp.settings, $selectClause
         FROM campaigns cmp
         LEFT JOIN clicks c ON c.campaign_id=cmp.id AND c.time BETWEEN ? AND ?$filterJoin
-        GROUP BY cmp.id";
+        GROUP BY cmp.id, cmp.name, cmp.settings";
 
         $campaigns = $this->exec_bind_list_query($query, $bindList);
         foreach ($campaigns as &$campaign) {

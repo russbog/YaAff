@@ -5,6 +5,21 @@ require_once __DIR__ . '/../paths.php';
 require_once __DIR__ . '/../abtest.php';
 require_once __DIR__ . '/../entities/Repositories.php';
 global $c, $db, $campId;
+$campaignIdentifier = $db->normalize_campaign_identifier($c->identifier);
+$preferredDomain = '';
+foreach ($c->domains as $domainName) {
+    $domainName = trim((string)$domainName);
+    if ($domainName !== '' && !str_contains($domainName, '*')) {
+        $preferredDomain = preg_replace('#^https?://#', '', $domainName) ?? $domainName;
+        $preferredDomain = explode('/', $preferredDomain, 2)[0];
+        break;
+    }
+}
+if ($preferredDomain === '') {
+    $preferredDomain = get_request_host();
+}
+$campaignUrlBase = (is_https() ? 'https://' : 'http://') . $preferredDomain . '/';
+$campaignUrl = $campaignUrlBase . rawurlencode($campaignIdentifier);
 ?>
 <!doctype html>
 <html lang="en">
@@ -38,16 +53,31 @@ global $c, $db, $campId;
             </nav>
             <div class="camp-content">
         <form id="campsettings" autocomplete="off">
-            <section id="sec-domains" class="camp-section active">
-            <div class="form-group-inner">
-            <div class="row">
-                <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
-                    <label class="login2 pull-left pull-left-pro"> 
-                        <i class="bi bi-info-circle admin-info-icon" title="Add all of the campaign's domains WITHOUT HTTP(S)! You can use *.xxx.com to match ALL subdomains."></i> Domains list
-                </label>
-                </div>
-            </div>
-            </div>
+              <section id="sec-domains" class="camp-section active">
+              <div class="form-group-inner">
+              <div class="row">
+                  <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                      <label class="login2 pull-left pull-left-pro">
+                          <i class="bi bi-info-circle admin-info-icon" title="The identifier is the public campaign path. The preferred domain below is used for convenient link copying; runtime routing works on any domain pointed to this panel."></i> Campaign URL
+                  </label>
+                  </div>
+                  <div class="col-lg-3 col-md-4 col-sm-12 col-xs-12">
+                      <input type="text" class="form-control" name="identifier" id="campaign-identifier" value="<?= htmlspecialchars($campaignIdentifier) ?>" placeholder="dsv34g3g" pattern="[A-Za-z0-9_-]{1,64}" />
+                  </div>
+                  <div class="col-lg-6 col-md-8 col-sm-12 col-xs-12">
+                      <input type="text" readonly class="form-control" id="campaign-url-preview" data-url-base="<?= htmlspecialchars($campaignUrlBase) ?>" value="<?= htmlspecialchars($campaignUrl) ?>" />
+                  </div>
+              </div>
+              </div>
+              <div class="form-group-inner">
+              <div class="row">
+                  <div class="col-lg-3 col-md-12 col-sm-12 col-xs-12">
+                      <label class="login2 pull-left pull-left-pro">
+                          <i class="bi bi-info-circle admin-info-icon" title="Add preferred domains WITHOUT HTTP(S). These domains are used for convenient campaign link generation and visual organization; they no longer limit which domain can serve this campaign."></i> Preferred domains
+                  </label>
+                  </div>
+              </div>
+              </div>
 
             <div id="domains_container">
                 <?php foreach ($c->domains as $dn) { ?>

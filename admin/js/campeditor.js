@@ -30,11 +30,42 @@ async function campEditor(action, campId=null, name=null) {
 let campMenuDropdown = null;
 let _campMenuId = null;
 let _campMenuName = null;
+let _campMenuData = null;
 
 function closeCampMenu() {
     if (campMenuDropdown) campMenuDropdown.classList.remove('show');
     _campMenuId = null;
     _campMenuName = null;
+    _campMenuData = null;
+}
+
+function buildCampaignUrl(data) {
+    const settings = data?.settings || {};
+    const domains = Array.isArray(settings.domains) ? settings.domains : [];
+    const preferredDomain = domains.find((domain) => {
+        const value = String(domain || '').trim();
+        return value && !value.includes('*');
+    });
+    const host = String(preferredDomain || window.location.host).replace(/^https?:\/\//, '').split('/')[0];
+    const identifier = String(settings.identifier || '').trim().replace(/^\/+|\/+$/g, '');
+    return `${window.location.protocol}//${host}/${encodeURIComponent(identifier)}`;
+}
+
+async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    document.execCommand('copy');
+    textarea.remove();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -43,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
     campMenuDropdown.innerHTML = `
         <div class="camp-menu-item btn-rename"><i class="bi bi-pencil-fill"></i> Rename</div>
         <div class="camp-menu-item btn-clone"><i class="bi bi-copy"></i> Clone</div>
+        <div class="camp-menu-item btn-copy-url"><i class="bi bi-link-45deg"></i> Copy URL</div>
         <div class="camp-menu-item btn-stats"><i class="bi bi-bar-chart-fill"></i> Statistics</div>
         <div class="camp-menu-item btn-allowed"><i class="bi bi-person-circle"></i> Allowed</div>
         <div class="camp-menu-item btn-blocked"><i class="bi bi-ban"></i> Blocked</div>
@@ -67,6 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.stopPropagation();
         const campaignId = _campMenuId;
         const campaignName = _campMenuName;
+        const campaignData = _campMenuData;
         closeCampMenu();
 
         if (menuItem.classList.contains('btn-rename')) {
@@ -99,6 +132,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             await campEditor('dup', campaignId, trimmedName);
+            return;
+        }
+
+        if (menuItem.classList.contains('btn-copy-url')) {
+            const url = buildCampaignUrl(campaignData);
+            await copyText(url);
+            alert(`Campaign URL copied:\n${url}`);
             return;
         }
 
@@ -140,6 +180,7 @@ function campNameCellClick(e, cell) {
         if (!wasOpen) {
             _campMenuId = campaignId;
             _campMenuName = row.getData().name;
+            _campMenuData = row.getData();
             const btnRect = menuBtn.getBoundingClientRect();
             campMenuDropdown.classList.add('show');
             const menuH = campMenuDropdown.offsetHeight;
