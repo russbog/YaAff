@@ -28,6 +28,12 @@ function get_bases_version(): string
     return file_get_contents($updateFile);
 }
 
+function geoip_uses_dbip_lite(): bool
+{
+    $sourceFile = __DIR__ . "/../bases/source.txt";
+    return is_readable($sourceFile) && stripos((string)file_get_contents($sourceFile), 'DB-IP') !== false;
+}
+
 $calDs = Dates::get_calend_dates();
 $cdStr = $calDs[0] === $calDs[1] ? $calDs[0] : "{$calDs[0]} - {$calDs[1]}";
 
@@ -81,6 +87,9 @@ $headerDateConfig = [
                                     $basesEncoded = htmlspecialchars($basesVersion, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
                                 ?>
                                 GeoBases: <a href="#" id="updateBases" title="Update bases" class="<?=$basesClass?>"><?=$basesEncoded?></a>
+                                <?php if (geoip_uses_dbip_lite()): ?>
+                                    <span class="geo-attribution">· <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">IP Geolocation by DB-IP</a></span>
+                                <?php endif; ?>
                                 <img style="width:30px; height:30px;display:none;" src="<?=get_cloaker_path()?>img/loading.apng" id="loadingAnimation" />
                                 <?php if (DebugMethods::on()): ?>
                                 <span class="yaaff-debug-badge">Debug Mode</span>

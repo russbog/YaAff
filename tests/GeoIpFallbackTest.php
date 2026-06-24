@@ -17,4 +17,13 @@ final class GeoIpFallbackTest extends TestCase
         $this->assertFileDoesNotExist(__DIR__ . '/../bases/GeoLite2-ASN.mmdb');
         $this->assertSame('Unknown', getisp('8.8.8.8'));
     }
+
+    public function testLookupMissesReturnUnknownInsteadOfThrowing(): void
+    {
+        $source = (string) file_get_contents(__DIR__ . '/../bases/ipcountry.php');
+
+        $this->assertStringContainsString('catch (ANFException $exception)', $source);
+        $this->assertStringContainsString('GetCountry AddressNotFoundException', $source);
+        $this->assertStringContainsString('GetISP AddressNotFoundException', $source);
+    }
 }

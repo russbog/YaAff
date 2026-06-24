@@ -409,6 +409,53 @@ download_maxmind_database() {
     rm -rf "$temp_dir"
 }
 
+write_geoip_source() {
+    local bases_dir="$1"
+    local source_name="$2"
+
+    printf '%s
+' "$source_name" > "${bases_dir}/source.txt"
+}
+
+download_dbip_lite_database() {
+    local kind="$1"
+    local target_name="$2"
+    local target_dir="$3"
+    local temp_dir
+    local archive
+    local month
+    local url
+
+    temp_dir="$(mktemp -d)"
+    archive="${temp_dir}/${kind}.mmdb.gz"
+
+    for month in "$(date -u +%Y-%m)" "$(date -u -d 'last month' +%Y-%m)"; do
+        url="https://download.db-ip.com/free/dbip-${kind}-lite-${month}.mmdb.gz"
+        if curl -fsSL -A "${PRODUCT_NAME} installer" "$url" -o "$archive"; then
+            if gzip -dc "$archive" > "${target_dir}/${target_name}.mmdb"; then
+                rm -rf "$temp_dir"
+                return 0
+            fi
+        fi
+    done
+
+    rm -rf "$temp_dir"
+    return 1
+}
+
+download_dbip_lite_databases() {
+    local app_dir="$1"
+
+    info "Downloading DB-IP Lite GeoIP databases..."
+    mkdir -p "$app_dir/bases"
+    download_dbip_lite_database "country" "GeoLite2-Country" "$app_dir/bases" || return 1
+    download_dbip_lite_database "asn" "GeoLite2-ASN" "$app_dir/bases" || return 1
+    write_geoip_source "$app_dir/bases" "DB-IP Lite (CC BY 4.0) - https://db-ip.com"
+    chown www-data:www-data "$app_dir/bases/GeoLite2-Country.mmdb" "$app_dir/bases/GeoLite2-ASN.mmdb" "$app_dir/bases/source.txt"
+    chmod 0664 "$app_dir/bases/GeoLite2-Country.mmdb" "$app_dir/bases/GeoLite2-ASN.mmdb" "$app_dir/bases/source.txt"
+    success "DB-IP Lite databases downloaded"
+}
+
 maybe_download_maxmind_databases() {
     local app_dir="$1"
     local license_key="${MAXMIND_LICENSE_KEY:-}"
@@ -418,7 +465,11 @@ maybe_download_maxmind_databases() {
     fi
 
     if [ -z "$license_key" ]; then
-        echo -e "${YELLOW}WARNING: MaxMind databases were not downloaded.${NC}"
+        if download_dbip_lite_databases "$app_dir"; then
+            echo -e "${YELLOW}NOTICE: Using DB-IP Lite under CC BY 4.0. Keep attribution visible in YaAff.${NC}"
+            return 0
+        fi
+        echo -e "${YELLOW}WARNING: MaxMind and DB-IP Lite databases were not downloaded.${NC}"
         echo -e "${YELLOW}Upload GeoLite2-Country.mmdb and GeoLite2-ASN.mmdb to: ${app_dir}/bases/${NC}"
         echo -e "${YELLOW}GeoIP fields will be saved as Unknown until these files exist; traffic routing will continue.${NC}"
         return 0
@@ -428,8 +479,9 @@ maybe_download_maxmind_databases() {
     mkdir -p "$app_dir/bases"
     download_maxmind_database "$license_key" "GeoLite2-Country" "$app_dir/bases"
     download_maxmind_database "$license_key" "GeoLite2-ASN" "$app_dir/bases"
-    chown www-data:www-data "$app_dir/bases/GeoLite2-Country.mmdb" "$app_dir/bases/GeoLite2-ASN.mmdb"
-    chmod 0664 "$app_dir/bases/GeoLite2-Country.mmdb" "$app_dir/bases/GeoLite2-ASN.mmdb"
+    write_geoip_source "$app_dir/bases" "MaxMind GeoLite2"
+    chown www-data:www-data "$app_dir/bases/GeoLite2-Country.mmdb" "$app_dir/bases/GeoLite2-ASN.mmdb" "$app_dir/bases/source.txt"
+    chmod 0664 "$app_dir/bases/GeoLite2-Country.mmdb" "$app_dir/bases/GeoLite2-ASN.mmdb" "$app_dir/bases/source.txt"
     success "MaxMind databases downloaded"
 }
 
