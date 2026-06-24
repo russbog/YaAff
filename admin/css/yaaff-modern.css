@@ -401,3 +401,34 @@ label,
         padding: 18px 14px 32px;
     }
 }
+
+#updateOverlay.overlay {
+    background:
+        radial-gradient(circle at 35% 20%, rgba(124, 58, 237, 0.32), transparent 36%),
+        radial-gradient(circle at 65% 70%, rgba(20, 184, 166, 0.22), transparent 34%),
+        rgba(7, 17, 31, 0.96);
+}
+
+#updateOverlay .grid-overlay {
+    background-image:
+        linear-gradient(rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px);
+    background-size: 42px 42px;
+}
+
+#updateOverlay .updating-text {
+    padding: 24px 32px;
+    border: 1px solid var(--yaaff-border-strong);
+    border-radius: 24px;
+    background: rgba(15, 23, 42, 0.78);
+    color: #e5eefc;
+    font-family: Inter, "Roboto", system-ui, sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    text-shadow: none;
+    box-shadow: var(--yaaff-shadow);
+}
+
+#updateOverlay .cursor {
+    color: #8be9fd;
+}

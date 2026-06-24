@@ -1,12 +1,12 @@
 
-function setupMatrixRain() {
+function setupUpdateBackdrop() {
     const canvas = document.getElementById('matrix-rain');
     const ctx = canvas.getContext('2d');
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const characters = "01";
+    const characters = "YAAFF01";
     const fontSize = 14;
     const columns = canvas.width / fontSize;
     const drops = [];
@@ -16,10 +16,10 @@ function setupMatrixRain() {
     }
 
     function draw() {
-        ctx.fillStyle = 'rgba(27, 42, 71, 0.05)';
+        ctx.fillStyle = 'rgba(7, 17, 31, 0.08)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = '#0F0';
+        ctx.fillStyle = 'rgba(125, 211, 252, 0.72)';
         ctx.font = fontSize + 'px monospace';
 
         for (let i = 0; i < drops.length; i++) {
@@ -217,14 +217,14 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             loadingAnimation.style.display = 'inline';
             updateOverlay.style.display = 'flex';
-            setupMatrixRain();
-            typingCleanup = typeText('GEOIP UPDATING...', typingText);
+            setupUpdateBackdrop();
+            typingCleanup = typeText('Updating geobases...', typingText);
 
             try {
                 const response = await fetch('../bases/update.php');
                 const jsr = await response.json();
                 if (!jsr.error) {
-                    alert('Update SUCCESSFULL:\n' + jsr.result);
+                    alert('Update successful:\n' + jsr.result);
                     location.reload();
                 } else {
                     alert('Error updating geobases:\n' + jsr.result);
@@ -257,8 +257,8 @@ async function checkForUpdates() {
     let typingCleanup = null;
 
     updateOverlay.style.display = 'flex';
-    setupMatrixRain();
-    typingCleanup = typeText('SYSTEM UPDATING...', typingText);
+    setupUpdateBackdrop();
+    typingCleanup = typeText('Checking YaAff updates...', typingText);
 
     try {
         const result = await sendAutoupdateRequest('check');
@@ -269,7 +269,7 @@ async function checkForUpdates() {
         }
         
         if (!result.hasUpdate) {
-            alert('Your system is up to date!');
+            alert('YaAff is up to date!');
             return;
         }
         
