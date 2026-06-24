@@ -29,9 +29,15 @@ final class AutoUpdaterTest extends TestCase
 
     public function testUpdaterPreservesRuntimeDataAndSecrets(): void
     {
-        foreach (['settings.php', 'db', 'logs', 'ycclogs', 'tmp', 'caching', 'bases', 'backups', 'temp_update', 'fromfolder', '.git', '.env'] as $path) {
+        foreach (['settings.php', 'logs', 'ycclogs', 'tmp', 'caching', 'backups', 'temp_update', 'fromfolder', '.git', '.env'] as $path) {
             $this->assertStringContainsString("'$path'", $this->source);
         }
+        foreach (['#^db/.*\\.db(?:-shm|-wal)?$#', '#^bases/.*\\.mmdb$#', '#^bases/update\\.txt$#', '#^bases/source\\.txt$#', '#^bases/blacklists/.*\\.(?:ip|ua)$#'] as $pattern) {
+            $this->assertStringContainsString("'$pattern'", $this->source);
+        }
+        $this->assertStringNotContainsString("'db',", $this->source);
+        $this->assertStringNotContainsString("'bases',", $this->source);
+        $this->assertStringContainsString('PRESERVED_FILE_PATTERNS', $this->source);
         $this->assertStringContainsString('isPreservedPath', $this->source);
     }
 
