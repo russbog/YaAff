@@ -102,6 +102,59 @@ export const spa = {
     }),
 };
 
+// --- System maintenance (app auto-update / geobase update / timezone) -------
+// autoupdate.php and commonseditor.php speak form-encoded POST and a
+// {success|result|error} envelope rather than the {ok} one; bases/update.php
+// lives outside admin/ and returns {result, error}.
+
+export interface UpdateCheck {
+  hasUpdate: boolean;
+  version: string;
+  message?: string;
+}
+
+async function autoupdate(action: 'check' | 'update'): Promise<Record<string, unknown>> {
+  const res = await fetch(url('autoupdate.php'), {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+    body: form({ action }),
+  });
+  const text = await res.text();
+  let data: Record<string, unknown>;
+  try {
+    data = (text ? JSON.parse(text) : {}) as Record<string, unknown>;
+  } catch {
+    throw new ApiError(`Invalid JSON from server (HTTP ${res.status})`, res.status);
+  }
+  if (!res.ok || data.success === false) {
+    throw new ApiError((data.message as string) || `Request failed (HTTP ${res.status})`, res.status);
+  }
+  return data;
+}
+
+export const systemApi = {
+  checkUpdate: async (): Promise<UpdateCheck> => {
+    const d = await autoupdate('check');
+    return { hasUpdate: Boolean(d.hasUpdate), version: String(d.version ?? ''), message: d.message as string | undefined };
+  },
+  applyUpdate: async (): Promise<string> => {
+    const d = await autoupdate('update');
+    return String(d.message ?? 'Update complete');
+  },
+  // bases/update.php is one level above admin/; returns { result, error }.
+  updateGeobases: async (): Promise<string> => {
+    const res = await fetch(url('../bases/update.php'), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+    const data = await fileParse<{ error?: boolean; result?: string }>(res);
+    return data.result ?? 'GeoBases updated';
+  },
+  saveTimezone: (timezone: string) =>
+    filePost<{ error?: boolean; result?: string }>('commonseditor.php?action=savetimezone', form({ timezone })),
+};
+
 // Campaign CRUD reuses the existing campeditor.php transport.
 export const campaignApi = {
   create: (name: string) =>

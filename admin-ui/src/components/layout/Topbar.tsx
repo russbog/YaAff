@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useBootstrap } from '@/providers/BootstrapProvider';
+import { SystemPanel } from './SystemPanel';
 import { API_BASE, APP_VERSION } from '@/lib/api';
 
 export function Topbar({
@@ -36,6 +37,7 @@ export function Topbar({
         >
           <RefreshCw size={16} />
         </Button>
+        <SystemPanel />
         <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </Button>
