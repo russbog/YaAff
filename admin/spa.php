@@ -218,7 +218,13 @@ try {
                 $cs = $db->get_campaign_settings($campId);
                 $tz = $cs['statistics']['timezone'] ?? $tz;
             }
-            $range = Dates::get_time_range($tz);
+            $end = isset($_GET['end']) ? (int)$_GET['end'] : null;
+            $start = isset($_GET['start']) ? (int)$_GET['start'] : null;
+            if ($start !== null && $end !== null && $start < $end) {
+                $range = [$start, $end];
+            } else {
+                $range = Dates::get_time_range($tz);
+            }
             $page = max(1, (int)($_GET['page'] ?? 1));
             $size = max(1, min(5000, (int)($_GET['size'] ?? 200)));
             $sortField = (string)($_GET['sort'] ?? 'time');
@@ -235,7 +241,11 @@ try {
             auth_require('conversions.view', true);
             $gs = $db->get_common_settings();
             $tz = $gs['statistics']['timezone'] ?? 'UTC';
-            $range = Dates::get_time_range($tz);
+            $end = isset($_GET['end']) ? (int)$_GET['end'] : null;
+            $start = isset($_GET['start']) ? (int)$_GET['start'] : null;
+            $range = ($start !== null && $end !== null && $start < $end)
+                ? [$start, $end]
+                : Dates::get_time_range($tz);
             $campId = (int)($_GET['campId'] ?? 0);
             $limit = max(1, min(2000, (int)($_GET['limit'] ?? 500)));
             spa_respond(['data' => $db->get_conversions($range[0], $range[1], $campId, $limit)]);
@@ -249,6 +259,12 @@ try {
             $body = spa_body();
             $current = $db->get_common_settings();
             $merged = array_replace_recursive($current, $body);
+            // array_replace_recursive merges list values by index, which corrupts
+            // a reordered or trimmed list (trailing old items survive). For ordered
+            // preference lists, take the incoming value verbatim.
+            if (isset($body['statistics']['campaignsColumns'])) {
+                $merged['statistics']['campaignsColumns'] = $body['statistics']['campaignsColumns'];
+            }
             $db->set_common_settings($merged);
             spa_respond(['settings' => $merged]);
         }

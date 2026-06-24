@@ -8,9 +8,11 @@ import { Select, Input } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Segmented } from '@/components/ui/Segmented';
+import { DateRangePicker } from '@/components/ui/DateRangePicker';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { DataTable } from '@/components/data/DataTable';
 import { useBootstrap } from '@/providers/BootstrapProvider';
+import { useRange } from '@/providers/RangeProvider';
 import { spa } from '@/lib/api';
 import { fmtDateTime } from '@/lib/format';
 import type { ClicksQuery } from '@/lib/types';
@@ -34,6 +36,7 @@ const isView = (v: string | null): v is NonNullable<View> =>
 
 export function ReportsPage() {
   const { campaignsList } = useBootstrap();
+  const { bounds } = useRange();
   const [searchParams] = useSearchParams();
   const initialView = searchParams.get('view');
   const [campId, setCampId] = useState<number>(campaignsList[0]?.id ?? 0);
@@ -47,13 +50,13 @@ export function ReportsPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  useEffect(() => setPage(1), [campId, view, debounced]);
+  useEffect(() => setPage(1), [campId, view, debounced, bounds.start, bounds.end]);
 
   const needsCampaign = view !== 'trafficback';
   const enabled = !needsCampaign || campId > 0;
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ['clicks', view, campId, page, debounced],
+    queryKey: ['clicks', view, campId, page, debounced, bounds.start, bounds.end],
     queryFn: () =>
       spa.clicks({
         view,
@@ -61,6 +64,8 @@ export function ReportsPage() {
         page,
         size: PAGE_SIZE,
         search: debounced || undefined,
+        start: bounds.start,
+        end: bounds.end,
       }),
     enabled,
     placeholderData: keepPreviousData,
@@ -116,6 +121,7 @@ export function ReportsPage() {
             </Select>
           )}
           <Segmented size="sm" value={view} options={VIEWS} onChange={setView} />
+          <DateRangePicker />
         </div>
       }
     >

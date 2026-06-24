@@ -11,12 +11,12 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardHeader } from '@/components/ui/Card';
-import { Segmented } from '@/components/ui/Segmented';
+import { DateRangePicker } from '@/components/ui/DateRangePicker';
 import { Select } from '@/components/ui/Field';
 import { Skeleton, ErrorState } from '@/components/ui/States';
 import { AreaChart, BarList } from '@/components/data/Charts';
 import { useBootstrap } from '@/providers/BootstrapProvider';
-import { useRange, RANGE_PRESETS } from '@/providers/RangeProvider';
+import { useRange } from '@/providers/RangeProvider';
 import { spa } from '@/lib/api';
 import { fmtCompact, fmtMoney, fmtPct, toNumber } from '@/lib/format';
 
@@ -30,12 +30,12 @@ interface Kpi {
 
 export function DashboardPage() {
   const { campaignsList, commonSettings } = useBootstrap();
-  const { preset, setPreset, bounds } = useRange();
+  const { bounds } = useRange();
   const [campId, setCampId] = useState(0);
   const tz = commonSettings.statistics?.timezone ?? 'UTC';
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['dashboard', campId, preset.key, bounds.start],
+    queryKey: ['dashboard', campId, bounds.start, bounds.end],
     queryFn: () => spa.dashboard({ campId, start: bounds.start, end: bounds.end, tz }),
     refetchInterval: 30_000,
   });
@@ -82,12 +82,7 @@ export function DashboardPage() {
               </option>
             ))}
           </Select>
-          <Segmented
-            size="sm"
-            value={preset.key}
-            options={RANGE_PRESETS.map((p) => ({ value: p.key, label: p.label }))}
-            onChange={(k) => setPreset(RANGE_PRESETS.find((p) => p.key === k) ?? RANGE_PRESETS[1])}
-          />
+          <DateRangePicker />
         </div>
       }
     >
