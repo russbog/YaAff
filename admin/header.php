@@ -111,6 +111,10 @@ $headerDateConfig = [
                                     </span>
                                 </a>
                                 <?php endif; ?>
+                                <a class="nav-link" href="app.php" title="Open the new high-performance admin">
+                                    <i class="bi bi-stars"></i>
+                                    <span>New UI</span>
+                                </a>
                                 <a class="nav-link" href="#" onclick="checkForUpdates(); return false;">
                                     <i class="bi bi-cloud-arrow-down"></i>
                                     <span>Update</span>
