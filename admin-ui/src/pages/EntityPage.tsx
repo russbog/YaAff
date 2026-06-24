@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Plus, MoreVertical, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, MoreVertical, Pencil, Trash2, Search, FolderOpen, UploadCloud } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
@@ -11,6 +11,8 @@ import { Menu } from '@/components/ui/Menu';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { DataTable } from '@/components/data/DataTable';
 import { EntityForm, type FieldValues } from '@/components/entity/EntityForm';
+import { FileManager } from '@/components/files/FileManager';
+import { ZipUploadModal } from '@/components/files/ZipUploadModal';
 import { useToast } from '@/providers/ToastProvider';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
@@ -29,6 +31,14 @@ export function EntityPage({ type }: { type: string }) {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<EntityRecord | null | undefined>(undefined); // undefined = closed
   const valuesRef = useRef<FieldValues>({});
+  const isLandings = type === 'landings';
+  const [filesFolder, setFilesFolder] = useState<string | null>(null);
+  const [zipOpen, setZipOpen] = useState(false);
+
+  const landingFolder = (r: EntityRecord): string | null => {
+    const s = (r.settings ?? {}) as { type?: string; path?: string };
+    return s.type !== 'remote' && s.path ? s.path : null;
+  };
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['entity', type, 'list'],
@@ -97,6 +107,15 @@ export function EntityPage({ type }: { type: string }) {
               trigger={<MoreVertical size={16} />}
               items={[
                 { label: 'Edit', icon: <Pencil size={14} />, onClick: () => setEditing(r) },
+                ...(isLandings && landingFolder(r)
+                  ? [
+                      {
+                        label: 'Files',
+                        icon: <FolderOpen size={14} />,
+                        onClick: () => setFilesFolder(landingFolder(r)),
+                      },
+                    ]
+                  : []),
                 ...(canManage
                   ? [
                       {
@@ -122,7 +141,7 @@ export function EntityPage({ type }: { type: string }) {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canManage, schema],
+    [canManage, schema, isLandings],
   );
 
   if (!schema) {
@@ -144,9 +163,16 @@ export function EntityPage({ type }: { type: string }) {
       title={schema.title}
       toolbar={
         canManage && (
-          <Button variant="primary" size="sm" onClick={() => setEditing(null)}>
-            <Plus size={15} /> New {schema.singular}
-          </Button>
+          <div className="flex items-center gap-2">
+            {isLandings && (
+              <Button variant="secondary" size="sm" onClick={() => setZipOpen(true)}>
+                <UploadCloud size={15} /> Upload ZIP
+              </Button>
+            )}
+            <Button variant="primary" size="sm" onClick={() => setEditing(null)}>
+              <Plus size={15} /> New {schema.singular}
+            </Button>
+          </div>
         )
       }
     >
@@ -211,6 +237,20 @@ export function EntityPage({ type }: { type: string }) {
           />
         )}
       </Modal>
+
+      {isLandings && (
+        <ZipUploadModal
+          open={zipOpen}
+          onClose={() => setZipOpen(false)}
+          onUploaded={(folder) => {
+            setZipOpen(false);
+            setFilesFolder(folder);
+          }}
+        />
+      )}
+      {filesFolder && (
+        <FileManager folder={filesFolder} onClose={() => setFilesFolder(null)} />
+      )}
     </AppShell>
   );
 }

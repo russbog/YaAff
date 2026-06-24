@@ -117,6 +117,107 @@ export const campaignApi = {
     }),
 };
 
+// --- Landing file management (zipupload.php / listfolders.php / fileeditor.php)
+// These legacy endpoints speak form-encoded/multipart bodies and return a
+// `{error: bool, result?: string, ...}` envelope rather than the `{ok}` one.
+
+export interface FileNode {
+  name: string;
+  path: string;
+  type: 'file' | 'dir';
+  size?: number;
+  children?: FileNode[];
+}
+
+type FileEnvelope = { error?: boolean; result?: string; [k: string]: unknown };
+
+async function fileParse<T extends FileEnvelope>(res: Response): Promise<T> {
+  const text = await res.text();
+  let data: FileEnvelope;
+  try {
+    data = (text ? JSON.parse(text) : {}) as FileEnvelope;
+  } catch {
+    throw new ApiError(`Invalid JSON from server (HTTP ${res.status})`, res.status);
+  }
+  if (!res.ok || data.error) {
+    throw new ApiError(data.result || `Request failed (HTTP ${res.status})`, res.status);
+  }
+  return data as T;
+}
+
+function form(obj: Record<string, string>): URLSearchParams {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(obj)) p.set(k, v);
+  return p;
+}
+
+async function filePost<T extends FileEnvelope>(
+  path: string,
+  body: URLSearchParams | FormData,
+): Promise<T> {
+  const res = await fetch(url(path), {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+    body,
+  });
+  return fileParse<T>(res);
+}
+
+export type FolderType = 'landing' | 'white';
+
+export const folderApi = {
+  list: (type: FolderType = 'landing') =>
+    apiGet<{ error: boolean; folders: string[] }>('listfolders.php', { type }),
+  uploadZip: (folder: string, file: File, type: FolderType = 'landing') => {
+    const fd = new FormData();
+    fd.append('folder', folder);
+    fd.append('type', type);
+    fd.append('zipfile', file);
+    return filePost<{ error?: boolean; result?: string }>('zipupload.php', fd);
+  },
+};
+
+export const fileApi = {
+  list: (folder: string, type: FolderType = 'landing') =>
+    apiGet<{ error: boolean; tree: FileNode[] }>('fileeditor.php', {
+      action: 'list',
+      folder,
+      type,
+    }),
+  read: (folder: string, file: string, type: FolderType = 'landing') =>
+    apiGet<{ error: boolean; content: string; file: string }>('fileeditor.php', {
+      action: 'read',
+      folder,
+      file,
+      type,
+    }),
+  save: (folder: string, file: string, content: string, type: FolderType = 'landing') =>
+    filePost('fileeditor.php?action=save', form({ folder, type, file, content })),
+  // create overloads the legacy `type` param as the file/dir kind; for landing
+  // folders get_lcache_dir falls back to the landing dir for any non-"white"
+  // value, so passing the kind here keeps both behaviours correct.
+  create: (folder: string, file: string, kind: 'file' | 'dir') =>
+    filePost('fileeditor.php?action=create', form({ folder, file, type: kind })),
+  remove: (folder: string, file: string, type: FolderType = 'landing') =>
+    filePost('fileeditor.php?action=delete', form({ folder, type, file })),
+  rename: (folder: string, file: string, newName: string, type: FolderType = 'landing') =>
+    filePost('fileeditor.php?action=rename', form({ folder, type, file, newName })),
+  upload: (
+    folder: string,
+    file: File,
+    subpath: string,
+    type: FolderType = 'landing',
+  ) => {
+    const fd = new FormData();
+    fd.append('folder', folder);
+    fd.append('type', type);
+    fd.append('subpath', subpath);
+    fd.append('file', file);
+    return filePost('fileeditor.php?action=upload', fd);
+  },
+};
+
 // First-class entity CRUD via entityapi.php.
 export const entityApi = {
   list: (type: string) =>
