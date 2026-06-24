@@ -2,9 +2,9 @@
 require_once(__DIR__ . '/password.php');
 
 class AutoUpdater {
-    private const GITHUB_REPO = 'dvygolov/YellowCloaker';
+    private const GITHUB_REPO = 'russbog/YaAff';
     private const GITHUB_BRANCH = 'multipleconfigs';
-    private const GITHUB_API_URL = 'https://api.github.com/repos/dvygolov/YellowCloaker/contents/admin/version.txt?ref=multipleconfigs';
+    private const GITHUB_API_URL = 'https://api.github.com/repos/russbog/YaAff/contents/admin/version.txt?ref=multipleconfigs';
     private const VERSION_FILE = __DIR__ . '/version.txt';
     private const SETTINGS_FILE = __DIR__ . '/../settings.php';
     private const BACKUP_DIR = __DIR__ . '/../backups';

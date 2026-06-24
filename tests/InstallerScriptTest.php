@@ -41,17 +41,17 @@ class InstallerScriptTest extends TestCase
     public function testInstallerSupportsBatchAddDomainMode(): void
     {
         $this->assertStringContainsString('--add-domain', $this->script);
-        $this->assertStringContainsString('YELLOWTDS_DOMAINS', $this->script);
+        $this->assertStringContainsString('YAAFF_DOMAINS', $this->script);
         $this->assertStringContainsString("IFS=',' read -r -a raw_domains", $this->script);
         $this->assertStringContainsString('PARSED_DOMAINS+=("$domain")', $this->script);
     }
 
     public function testInstallerSupportsCurlPipeRepositoryDownload(): void
     {
-        $this->assertStringContainsString('YELLOWTDS_REPO_ZIP', $this->script);
-        $this->assertStringContainsString('https://github.com/dvygolov/YellowTDS/archive/refs/heads/main.zip', $this->script);
-        $this->assertStringContainsString('Installer was not run from a YellowTDS checkout; downloading repository ZIP', $this->script);
-        $this->assertStringContainsString('Downloaded repository ZIP does not look like YellowTDS', $this->script);
+        $this->assertStringContainsString('YAAFF_REPO_ZIP', $this->script);
+        $this->assertStringContainsString('https://github.com/russbog/YaAff/archive/refs/heads/multipleconfigs.zip', $this->script);
+        $this->assertStringContainsString('Installer was not run from a YaAff checkout; downloading repository ZIP', $this->script);
+        $this->assertStringContainsString('Downloaded repository ZIP does not look like YaAff', $this->script);
     }
 
     public function testInstallerChecksDnsBeforeCertbot(): void

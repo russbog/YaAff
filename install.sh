@@ -6,7 +6,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-PRODUCT_NAME="YellowTDS"
+PRODUCT_NAME="YaAff"
 PHP_VER="8.4"
 
 fail() {
@@ -30,10 +30,11 @@ Usage:
   sudo bash install.sh --add-domain
 
 Environment variables:
-  YELLOWTDS_DOMAIN       Primary domain for full install
-  YELLOWTDS_DOMAINS      Comma-separated domains for --add-domain
-  YELLOWTDS_APP_DIR      Installation directory or existing app directory
-  YELLOWTDS_REPO_ZIP     Repository ZIP URL for curl-pipe installs
+  YAAFF_DOMAIN           Primary domain for full install
+  YAAFF_DOMAINS          Comma-separated domains for --add-domain
+  YAAFF_APP_DIR          Installation directory or existing app directory
+  YAAFF_REPO_ZIP         Repository ZIP URL for curl-pipe installs
+  YELLOWTDS_*            Legacy aliases for the same YaAff variables
   MAXMIND_LICENSE_KEY    Optional MaxMind license key for GeoLite2 downloads
   SKIP_SSL=1             Skip certbot, useful for test environments
 EOF
@@ -96,16 +97,16 @@ disable_bullseye_backports() {
     local updated=1
 
     if [ -f /etc/apt/sources.list ] && grep -q 'bullseye-backports' /etc/apt/sources.list; then
-        cp /etc/apt/sources.list /etc/apt/sources.list.yellowtds.bak
-        sed -i '/bullseye-backports/s/^/# disabled by YellowTDS installer: /' /etc/apt/sources.list
+        cp /etc/apt/sources.list /etc/apt/sources.list.yaaff.bak
+        sed -i '/bullseye-backports/s/^/# disabled by YaAff installer: /' /etc/apt/sources.list
         updated=0
     fi
 
     for file in /etc/apt/sources.list.d/*.list; do
         [ -f "$file" ] || continue
         if grep -q 'bullseye-backports' "$file"; then
-            cp "$file" "${file}.yellowtds.bak"
-            sed -i '/bullseye-backports/s/^/# disabled by YellowTDS installer: /' "$file"
+            cp "$file" "${file}.yaaff.bak"
+            sed -i '/bullseye-backports/s/^/# disabled by YaAff installer: /' "$file"
             updated=0
         fi
     done
@@ -114,7 +115,7 @@ disable_bullseye_backports() {
 }
 
 update_package_lists() {
-    local apt_log="/tmp/yellowtds-apt-update.log"
+    local apt_log="/tmp/yaaff-apt-update.log"
 
     if apt-get update >"$apt_log" 2>&1; then
         rm -f "$apt_log"
@@ -156,7 +157,7 @@ ensure_php_repository() {
             install -d -m 0755 /usr/share/keyrings || fail "Failed to prepare APT keyring directory"
             curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor > /usr/share/keyrings/debsuryorg-archive-keyring.gpg \
                 || fail "Failed to install Sury PHP repository key"
-            cat > /etc/apt/sources.list.d/yellowtds-php-sury.list <<EOF
+            cat > /etc/apt/sources.list.d/yaaff-php-sury.list <<EOF
 deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ ${OS_CODENAME} main
 EOF
             update_package_lists || fail "Failed to refresh package lists after adding Sury PHP repository"
@@ -288,7 +289,7 @@ install_maxmind_extension() {
 
 copy_application() {
     local app_dir="$1"
-    local repo_zip="${YELLOWTDS_REPO_ZIP:-https://github.com/dvygolov/YellowTDS/archive/refs/heads/main.zip}"
+    local repo_zip="${YAAFF_REPO_ZIP:-${YELLOWTDS_REPO_ZIP:-https://github.com/russbog/YaAff/archive/refs/heads/multipleconfigs.zip}}"
     local temp_dir
     local source_dir
 
@@ -323,20 +324,20 @@ copy_application() {
         return 0
     fi
 
-    info "Installer was not run from a YellowTDS checkout; downloading repository ZIP..."
+    info "Installer was not run from a YaAff checkout; downloading repository ZIP..."
     temp_dir="$(mktemp -d)"
-    curl -fsSL "$repo_zip" -o "${temp_dir}/yellowtds.zip" || {
+    curl -fsSL "$repo_zip" -o "${temp_dir}/yaaff.zip" || {
         rm -rf "$temp_dir"
-        fail "Failed to download YellowTDS repository ZIP from $repo_zip"
+        fail "Failed to download YaAff repository ZIP from $repo_zip"
     }
-    unzip -q "${temp_dir}/yellowtds.zip" -d "$temp_dir" || {
+    unzip -q "${temp_dir}/yaaff.zip" -d "$temp_dir" || {
         rm -rf "$temp_dir"
-        fail "Failed to extract YellowTDS repository ZIP"
+        fail "Failed to extract YaAff repository ZIP"
     }
     source_dir="$(find "$temp_dir" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
     [ -n "$source_dir" ] && [ -f "$source_dir/index.php" ] || {
         rm -rf "$temp_dir"
-        fail "Downloaded repository ZIP does not look like YellowTDS"
+        fail "Downloaded repository ZIP does not look like YaAff"
     }
     tar \
         --exclude='./.git' \
@@ -521,7 +522,7 @@ configure_domain() {
 }
 
 run_full_install() {
-    local domain="${YELLOWTDS_DOMAIN:-}"
+    local domain="${YAAFF_DOMAIN:-${YELLOWTDS_DOMAIN:-}}"
     local app_dir
     local public_ip
 
@@ -533,7 +534,7 @@ run_full_install() {
     domain="$(normalize_domain "$domain")"
     validate_domain "$domain" || fail "Invalid domain: $domain"
 
-    app_dir="${YELLOWTDS_APP_DIR:-/var/www/${domain}}"
+    app_dir="${YAAFF_APP_DIR:-${YELLOWTDS_APP_DIR:-/var/www/${domain}}}"
     app_dir="$(readlink -m "$app_dir")"
 
     public_ip="$(detect_public_ip)"
@@ -555,15 +556,15 @@ run_full_install() {
 }
 
 run_add_domain() {
-    local domains="${YELLOWTDS_DOMAINS:-}"
-    local app_dir="${YELLOWTDS_APP_DIR:-}"
+    local domains="${YAAFF_DOMAINS:-${YELLOWTDS_DOMAINS:-}}"
+    local app_dir="${YAAFF_APP_DIR:-${YELLOWTDS_APP_DIR:-}}"
     local public_ip
     local domain
 
     echo -e "${GREEN}${PRODUCT_NAME} add-domain mode${NC}"
 
     if [ -z "$app_dir" ]; then
-        read -r -p "Enter existing YellowTDS app directory: " app_dir < /dev/tty
+        read -r -p "Enter existing YaAff app directory: " app_dir < /dev/tty
     fi
     app_dir="$(readlink -m "$app_dir")"
     [ -d "$app_dir" ] || fail "Application directory does not exist: $app_dir"

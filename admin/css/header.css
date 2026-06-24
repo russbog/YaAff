@@ -60,11 +60,11 @@
 .updating-text {
     position: relative;
     z-index: 1;
-    color: #0F0;
-    font-family: monospace;
+    color: #8be9fd;
+    font-family: Inter, 'Roboto', system-ui, sans-serif;
     font-size: 24px;
     text-align: center;
-    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    text-shadow: none;
 }
 
 .cursor {

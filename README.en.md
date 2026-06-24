@@ -1,101 +1,106 @@
-```
-                            Yellow TDS
-    _            __     __  _ _             __          __  _
-   | |           \ \   / / | | |            \ \        / / | |
-   | |__  _   _   \ \_/ /__| | | _____      _\ \  /\  / /__| |__
-   | '_ \| | | |   \   / _ \ | |/ _ \ \ /\ / /\ \/  \/ / _ \ '_ \
-   | |_) | |_| |    | |  __/ | | (_) \ V  V /  \  /\  /  __/ |_) |
-   |_.__/ \__, |    |_|\___|_|_|\___/ \_/\_/    \/  \/ \___|_.__/
-           __/ |
-          |___/             https://yellowweb.top
+# YaAff
 
-If you like this script, PLEASE DONATE!
-```
+YaAff is a professional affiliate traffic routing and conversion management system based on a fork of YellowTDS. It keeps compatibility with YellowTDS/YellowCloaker runtime integration patterns while moving the product toward a Keitaro-like TDS: campaigns, flows, postbacks, reports, entities, API, RBAC, integrations, and production tooling in one admin panel.
 
-[Support this project](https://yellowweb.top/donate)
+> YaAff is a fork of YellowTDS. `YellowCloaker` references in the PHP Connect user-agent/client API remain intentionally for backward compatibility with existing integrations.
 
-# Yellow TDS
+## Capabilities
 
-Yellow TDS is a traffic distribution system for routing traffic according to campaign rules. The project includes the filtering engine, SQLite storage, admin panel, statistics, click logs, postback handling, and multiple integration modes.
+### Traffic distribution
 
-## What This Product Does
+- Campaigns with domains, trafficback, and per-campaign statistics settings.
+- White/black branches, multi-step funnels, and flows.
+- Traffic distribution modes: equal, weighted, and Thompson Sampling.
+- Redirect strategies: HTTP 301/302/307, 404, curl/proxy, remote, iframe/meta/script scenarios.
+- Rules and filters for IP, geo, ASN, language, user-agent, devices, referrers, and custom parameters.
+- JS Connect, PHP Connect, and documented runtime wrappers: `index.php`, `js/index.php`, `phpconnect.php`, `postback.php`, `updateparams.php`, `send.php`, `next.php`.
 
-The system receives incoming traffic and decides what should be returned for each request:
+### Affiliate operations
 
-- the white branch for blocked or filtered traffic
-- the black branch for allowed traffic
-- trafficback when no campaign matches
+- Campaign entities: sources, networks, offers, landings, domains, and integrations.
+- S2S postbacks and conversion processing.
+- Lead-form forwarding through `send.php` with safe upstream error handling that does not expose POST/debug data.
+- Conversion API integrations for sending events to external networks.
+- Macros and URL parameterization for offers, landings, and postbacks.
 
-Key capabilities:
+### Analytics and control
 
-- campaign-based routing by domain
-- white and black logic
-- multi-step funnels and flows
-- equal, weighted, and Thompson Sampling distribution
-- JS bot detection
-- S2S postbacks
-- statistics, custom tables, and click views
-- JS Connect and PHP Connect
+- Dashboard, campaign statistics, click logs, conversions, and custom table columns.
+- Report exports and statistics aggregators.
+- Timezone-aware date picker and per-campaign timezone settings.
+- REST API and OpenAPI endpoint for automation.
+- RBAC: users, roles, and permissions.
+- Bot protection through blacklist feeds, offline matching, and scheduled refresh.
+- Rules scheduler, notifications, retention, and backup utilities.
 
-## Quick Start
+### Modern admin UI
 
-### VPS Auto-Install
+- New YaAff branding instead of legacy YellowTDS/YellowCloaker logo assets.
+- Modern dark control panel with glassmorphism cards, refreshed navigation, buttons, forms, and tables.
+- New login screen and SVG favicon.
 
-For a clean Debian/Ubuntu VPS, use the auto-installer:
+## Quick start
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/dvygolov/YellowTDS/main/install.sh | sudo bash
-```
+### VPS auto-installer
 
-The script asks for a domain, verifies DNS points to the VPS, installs nginx/PHP/HTTPS, the MaxMind C extension, and offers to download GeoLite2 databases.
-
-To add multiple domains to an existing instance:
+For a clean Debian/Ubuntu VPS, use the installer from this repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dvygolov/YellowTDS/main/install.sh | sudo bash -s -- --add-domain
+curl -fsSL https://raw.githubusercontent.com/russbog/YaAff/multipleconfigs/install.sh | sudo bash
 ```
 
-Enter domains comma-separated, for example: `tds1.example.com,tds2.example.com`.
+The script asks for a domain, verifies DNS points to the VPS, installs nginx/PHP/HTTPS, installs the MaxMind C extension, and offers to download GeoLite2 databases.
 
-See: [VPS Installation](docs/en/installation.md).
+To add domains to an existing instance:
 
-### Manual Install
+```bash
+curl -fsSL https://raw.githubusercontent.com/russbog/YaAff/multipleconfigs/install.sh | sudo bash -s -- --add-domain
+```
 
-1. Deploy the contents to your server/hosting.
-2. Open `settings.php` and configure at least:
+Domains may be entered as a comma-separated list: `tds1.example.com,tds2.example.com`.
+
+### Manual install
+
+1. Deploy the repository contents to hosting with PHP 8.2+.
+2. Run `composer install` if you need development/test dependencies.
+3. Open `settings.php` and configure at minimum:
    - `adminPassword`
    - `dbConnection`
-   - `debug` (`false` in production)
-   - `adminDomain` if needed
-   - `adminIp` if needed
-3. Make sure PHP can write to:
+   - `debug` (`false` for production)
+   - `adminDomain` when needed
+   - `adminIp` when needed
+4. Make sure PHP can write to:
    - `db/`
    - `logs/`
    - `caching/`
-4. Open `/admin/`.
-5. Create a campaign, add domains, configure white/black behavior, and save.
+5. Open `/admin/` and create a campaign.
 
-## Main Entry Points
+## Runtime entrypoints
 
-- `index.php` — main runtime entry point
-- `js/index.php` — JS Connect
-- `phpconnect.php` — PHP Connect API
-- `postback.php` — incoming postbacks
-- `send.php` — lead form submission relay
-- `next.php` — funnel step transitions
-- `admin/` — admin panel
+- `index.php` — main runtime entry point.
+- `js/index.php` — JS Connect.
+- `phpconnect.php` — PHP Connect API compatibility endpoint.
+- `postback.php` — incoming S2S postbacks.
+- `updateparams.php` — click parameter updates.
+- `send.php` — lead-form forwarding to external affiliate endpoints.
+- `next.php` — funnel step transitions.
+- `api/rest.php` and `api/openapi.php` — REST API and OpenAPI schema.
+- `admin/` — YaAff admin panel.
 
-## Full Documentation
+## Development checks
 
-The full bilingual documentation lives inside this repository:
+```bash
+composer install
+php ./vendor/bin/phpunit --colors=never
+find . -name '*.php' -not -path './vendor/*' -not -path './thankyou/vendor/*' -print0 | xargs -0 -n1 php -l
+php -S 127.0.0.1:8090 -t "$PWD"
+```
 
+To test the real `send.php` failure path, temporarily set `"debug" => false` in `settings.php`, then restore the original value.
+
+## Documentation
+
+Historical YellowTDS/YellowCloaker documentation remains in `docs/` and is being updated for YaAff over time:
+
+- [Russian documentation](docs/ru/index.md)
 - [English documentation](docs/en/index.md)
-- [Русская документация](docs/ru/index.md)
-
-Recommended reading order:
-
-1. [Product Overview](docs/en/overview.md)
-2. [How It Works](docs/en/how-it-works.md)
-3. [Admin Login](docs/en/admin-login.md)
-4. [Campaign Settings](docs/en/campaign-settings.md)
-5. [Statistics](docs/en/statistics.md)

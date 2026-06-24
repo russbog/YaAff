@@ -30,53 +30,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Yellow Cloaker Login</title>
-    <link rel="icon" type="image/png" href="img/favicon.png">
+    <title>YaAff Login</title>
+    <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="stylesheet" type="text/css" href="css/login.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-        #cursor {
-            display: inline-block;
-            color: #0F0;
-            font-family: monospace;
-        }
-
-        button[type="submit"] {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        button[type="submit"]:hover {
-            color: #0F0;
-            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5),
-                         0 0 20px rgba(0, 255, 0, 0.3),
-                         0 0 30px rgba(0, 255, 0, 0.2);
-            border-color: #0F0;
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
-        }
-
-        button[type="submit"]::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(0, 255, 0, 0.2),
-                transparent
-            );
-            transition: 0.5s;
-        }
-
-        button[type="submit"]:hover::before {
-            left: 100%;
-        }
-    </style>
     <script>
         let lockoutActive = false;
         let lockoutTimer = null;
@@ -109,51 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             lockoutTimer = setInterval(tick, 1000);
         }
 
-        // Matrix rain effect
-        function setupMatrixRain() {
-            const canvas = document.getElementById('matrix-rain');
-            const ctx = canvas.getContext('2d');
-
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-
-            const characters = "01";
-            const fontSize = 14;
-            const columns = canvas.width / fontSize;
-            const drops = [];
-
-            for (let x = 0; x < columns; x++) {
-                drops[x] = Math.random() * -100;
-            }
-
-            function draw() {
-                ctx.fillStyle = 'rgba(27, 42, 71, 0.05)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                ctx.fillStyle = '#0F0';
-                ctx.font = fontSize + 'px monospace';
-
-                for (let i = 0; i < drops.length; i++) {
-                    const text = characters.charAt(Math.floor(Math.random() * characters.length));
-                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                        drops[i] = 0;
-                    }
-                    drops[i]++;
-                }
-            }
-
-            setInterval(draw, 35);
-
-            window.addEventListener('resize', () => {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            });
-        }
-
         document.addEventListener('DOMContentLoaded', function () {
-            setupMatrixRain();
             const form = document.getElementById('login-form');
             const submitButton = form.querySelector('button[type="submit"]');
             const passwordInput = document.getElementById('password');
@@ -227,15 +141,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <?php $cloPath = get_cloaker_path(); ?>
 <body>
-    <canvas id="matrix-rain"></canvas>
-    <div class="grid-overlay"></div>
     <div id="main">
-        <div id="title">
-            <img src="<?= $cloPath ?>img/logobig.png" alt="Yellow Cloaker Logo" />
+        <div id="title" class="yaaff-login-brand">
+            <div class="yaaff-login-mark" aria-hidden="true">Y</div>
+            <div>
+                <div class="yaaff-login-name">YaAff</div>
+                <div class="yaaff-login-subtitle">Affiliate traffic intelligence</div>
+            </div>
         </div>
         <div class="login-container">
             <form id="login-form">
-                <h2>Welcome Back</h2>
+                <h2>Welcome back</h2>
                 <?php if ($multiuser): ?>
                 <div class="input-group">
                     <label for="username">Username</label>
@@ -253,7 +169,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
                 <button type="submit" class="login-button">
                     <img src="<?= $cloPath ?>img/loading.apng" class="loading-img" alt="Loading..." />
-                    <span>Login to Dashboard</span>
+                    <span>Open dashboard</span>
                 </button>
             </form>
             <div class="version-info">
