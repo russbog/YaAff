@@ -64,6 +64,7 @@ export interface CommonSettings {
     timezone?: string;
     table?: unknown[];
     campaignsFilters?: unknown;
+    campaignsColumns?: string[];
   };
   trafficBackUrl?: string;
   [k: string]: unknown;
@@ -127,6 +128,8 @@ export interface ClicksQuery {
   sort?: string;
   dir?: 'asc' | 'desc';
   search?: string;
+  start?: number;
+  end?: number;
 }
 
 export interface ClicksResponse {

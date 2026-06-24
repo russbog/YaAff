@@ -14,20 +14,46 @@ export const RANGE_PRESETS: RangePreset[] = [
   { key: '30d', label: '30D', seconds: 2592000 },
 ];
 
+export interface CustomRange {
+  start: number;
+  end: number;
+}
+
 interface RangeCtx {
   preset: RangePreset;
   setPreset: (p: RangePreset) => void;
+  custom: CustomRange | null;
+  setCustom: (r: CustomRange | null) => void;
   bounds: { start: number; end: number };
+  isCustom: boolean;
 }
 
 const Ctx = createContext<RangeCtx | null>(null);
 
 export function RangeProvider({ children }: { children: ReactNode }) {
-  const [preset, setPreset] = useState<RangePreset>(RANGE_PRESETS[1]);
+  const [preset, setPresetState] = useState<RangePreset>(RANGE_PRESETS[1]);
+  const [custom, setCustom] = useState<CustomRange | null>(null);
+
+  const setPreset = (p: RangePreset) => {
+    setCustom(null);
+    setPresetState(p);
+  };
+
   const value = useMemo<RangeCtx>(() => {
+    if (custom) {
+      return { preset, setPreset, custom, setCustom, bounds: custom, isCustom: true };
+    }
     const end = Math.floor(Date.now() / 1000);
-    return { preset, setPreset, bounds: { start: end - preset.seconds, end } };
-  }, [preset]);
+    return {
+      preset,
+      setPreset,
+      custom,
+      setCustom,
+      bounds: { start: end - preset.seconds, end },
+      isCustom: false,
+    };
+  }, [preset, custom]);
+
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

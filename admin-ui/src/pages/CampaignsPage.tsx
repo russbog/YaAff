@@ -23,13 +23,14 @@ import { Menu } from '@/components/ui/Menu';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { DataTable } from '@/components/data/DataTable';
+import { ColumnsModal } from '@/components/campaigns/ColumnsModal';
 import { useToast } from '@/providers/ToastProvider';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
 import { spa, campaignApi } from '@/lib/api';
 import { fmtStat, toNumber } from '@/lib/format';
 import { downloadCsv } from '@/lib/csv';
-import type { CampaignRow } from '@/lib/types';
+import type { CampaignRow, StatField } from '@/lib/types';
 
 type DialogState =
   | { kind: 'create' }
@@ -44,11 +45,29 @@ export function CampaignsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const canManage = useCan()('campaigns.manage');
-  const { statFields, trafficBackUrl } = useBootstrap();
+  const { statFields, trafficBackUrl, commonSettings } = useBootstrap();
   const [search, setSearch] = useState('');
   const [dialog, setDialog] = useState<DialogState>(null);
   const [name, setName] = useState('');
   const [tbUrl, setTbUrl] = useState('');
+  const [columnsOpen, setColumnsOpen] = useState(false);
+
+  const savedColumns = useMemo<string[] | null>(() => {
+    const c = commonSettings.statistics?.campaignsColumns;
+    return Array.isArray(c) ? (c as string[]) : null;
+  }, [commonSettings]);
+
+  // Apply the saved show/hide + order to the available stat fields.
+  const visibleStatFields = useMemo<StatField[]>(() => {
+    if (!savedColumns) return statFields;
+    const byField = new Map(statFields.map((f) => [f.field, f]));
+    const out: StatField[] = [];
+    for (const key of savedColumns) {
+      const f = byField.get(key);
+      if (f) out.push(f);
+    }
+    return out.length ? out : statFields;
+  }, [savedColumns, statFields]);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['campaigns'],
@@ -113,11 +132,22 @@ export function CampaignsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const columnsMut = useMutation({
+    mutationFn: (cols: string[]) =>
+      spa.saveCommonSettings({ statistics: { campaignsColumns: cols } }),
+    onSuccess: () => {
+      toast.success('Columns saved');
+      setColumnsOpen(false);
+      qc.invalidateQueries({ queryKey: ['bootstrap'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const openAdvanced = (row: CampaignRow) => navigate(`/campaign/${row.id}`);
 
   const exportCsv = () => {
-    const headers = ['Campaign', ...statFields.map((f) => f.title)];
-    const data = rows.map((r) => [r.name, ...statFields.map((f) => String(r[f.field] ?? ''))]);
+    const headers = ['Campaign', ...visibleStatFields.map((f) => f.title)];
+    const data = rows.map((r) => [r.name, ...visibleStatFields.map((f) => String(r[f.field] ?? ''))]);
     downloadCsv(`campaigns-${new Date().toISOString().slice(0, 10)}.csv`, headers, data);
   };
 
@@ -145,7 +175,7 @@ export function CampaignsPage() {
         </div>
       ),
     };
-    const statCols: ColumnDef<CampaignRow, unknown>[] = statFields.map((f) => ({
+    const statCols: ColumnDef<CampaignRow, unknown>[] = visibleStatFields.map((f) => ({
       id: f.field,
       header: f.title,
       accessorFn: (r) => toNumber(r[f.field]),
@@ -205,7 +235,7 @@ export function CampaignsPage() {
     };
     return [nameCol, ...statCols, actionsCol];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statFields, canManage]);
+  }, [visibleStatFields, canManage]);
 
   const submit = () => {
     if (dialog?.kind === 'trafficback') return trafficbackMut.mutate(tbUrl.trim());
@@ -221,6 +251,9 @@ export function CampaignsPage() {
       title="Campaigns"
       toolbar={
         <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setColumnsOpen(true)}>
+            <Sliders size={14} /> Columns
+          </Button>
           <Button variant="secondary" size="sm" onClick={exportCsv} disabled={rows.length === 0}>
             <Download size={14} /> Export CSV
           </Button>
@@ -374,6 +407,15 @@ export function CampaignsPage() {
           </FormRow>
         )}
       </Modal>
+
+      <ColumnsModal
+        open={columnsOpen}
+        onClose={() => setColumnsOpen(false)}
+        statFields={statFields}
+        value={savedColumns ?? statFields.map((f) => f.field)}
+        onSave={(cols) => columnsMut.mutate(cols)}
+        saving={columnsMut.isPending}
+      />
     </AppShell>
   );
 }
