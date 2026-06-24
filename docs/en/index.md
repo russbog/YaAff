@@ -33,3 +33,10 @@ This is the main product, admin, and runtime documentation for YellowCloaker.
 - [Phase 7: Reporting — Real-time Dashboard, Charts & Scheduled Exports](phase-7-reporting.md)
 - [Phase 8: Automation Rules + Scheduler](phase-8-rules-scheduler.md)
 - [Phase 9: Notifications (Telegram, Webhook, Email)](phase-9-notifications.md)
+- [Phase 10: Multi-user + RBAC](phase-10-rbac.md)
+- [Phase 11: REST API + OpenAPI](phase-11-rest-api.md)
+- [Phase 12: MySQL/MariaDB Driver + Backup/Restore/Retention](phase-12-mysql-data.md)
+
+## Keitaro Parity
+
+- [Keitaro Parity Matrix](parity-matrix.md)
