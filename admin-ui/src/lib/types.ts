@@ -38,6 +38,7 @@ export interface TimezoneOption {
 
 export interface BootstrapResponse {
   ok: true;
+  // Version format: YY.MM.DD.mm (mm = minutes since midnight, UTC). See admin/autoupdate.php.
   version: string;
   multiuser: boolean;
   user: { name: string; role: string } | null;
