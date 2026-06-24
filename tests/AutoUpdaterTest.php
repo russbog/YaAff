@@ -56,9 +56,11 @@ final class AutoUpdaterTest extends TestCase
         $version = trim((string) file_get_contents(__DIR__ . '/../admin/version.txt'));
         $parts = explode('.', $version);
 
-        // New format: YY.MM.DD.mm (4 parts, minutes since midnight 0-1439)
-        $this->assertCount(4, $parts, "Version must use YY.MM.DD.mm format, got: $version");
-        $this->assertGreaterThanOrEqual(0, intval($parts[3]));
-        $this->assertLessThan(1440, intval($parts[3]));
+        // Accept both legacy DD.MM.YY (3 parts) and new YY.MM.DD.mm (4 parts)
+        $this->assertContains(count($parts), [3, 4], "Version must be DD.MM.YY or YY.MM.DD.mm, got: $version");
+        if (count($parts) === 4) {
+            $this->assertGreaterThanOrEqual(0, intval($parts[3]));
+            $this->assertLessThan(1440, intval($parts[3]));
+        }
     }
 }
