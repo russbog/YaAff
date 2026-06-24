@@ -129,6 +129,7 @@ $headerDateConfig = [
             'channels.php' => ['Notifications', 'bi-bell', 'channels.view'],
             'users.php' => ['Users', 'bi-people', 'users.view'],
             'roles.php' => ['Roles', 'bi-person-badge', 'roles.view'],
+            'api.php' => ['REST API', 'bi-braces', null],
         ];
     ?>
     <div class="entity-nav-area">
