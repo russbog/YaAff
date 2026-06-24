@@ -32,3 +32,4 @@ This is the main product, admin, and runtime documentation for YellowCloaker.
 - [Phase 6: Bot Protection — Auto-updated IP/UA Blacklists](phase-6-bot-protection.md)
 - [Phase 7: Reporting — Real-time Dashboard, Charts & Scheduled Exports](phase-7-reporting.md)
 - [Phase 8: Automation Rules + Scheduler](phase-8-rules-scheduler.md)
+- [Phase 9: Notifications (Telegram, Webhook, Email)](phase-9-notifications.md)

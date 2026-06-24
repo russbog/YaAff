@@ -125,6 +125,7 @@ $headerDateConfig = [
             'conversions.php' => ['Conversions', 'bi-graph-up-arrow'],
             'blacklists.php' => ['Bot Protection', 'bi-shield-shaded'],
             'rules.php' => ['Rules', 'bi-robot'],
+            'channels.php' => ['Notifications', 'bi-bell'],
         ];
     ?>
     <div class="entity-nav-area">
