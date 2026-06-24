@@ -24,11 +24,33 @@ export class ApiError extends Error {
 
 type Json = Record<string, unknown>;
 
+// Some legacy PHP endpoints can prepend a warning/notice (e.g. a failed
+// file_get_contents to GitHub, or display_errors=On) before the JSON body,
+// producing responses like `<br /><b>Warning</b>: ...{"success":true}`.
+// Parse the whole body first; on failure, retry from the first `{`/`[` so a
+// leaked warning doesn't surface to the user as "Invalid JSON".
+function parseJsonLoose(text: string): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    const start = text.search(/[[{]/);
+    if (start > 0) {
+      try {
+        return JSON.parse(text.slice(start));
+      } catch {
+        /* fall through */
+      }
+    }
+    throw new SyntaxError('Invalid JSON');
+  }
+}
+
 async function parse<T>(res: Response): Promise<T> {
   const text = await res.text();
   let data: unknown = null;
   try {
-    data = text ? JSON.parse(text) : null;
+    data = parseJsonLoose(text);
   } catch {
     throw new ApiError(`Invalid JSON from server (HTTP ${res.status})`, res.status);
   }
@@ -123,7 +145,7 @@ async function autoupdate(action: 'check' | 'update'): Promise<Record<string, un
   const text = await res.text();
   let data: Record<string, unknown>;
   try {
-    data = (text ? JSON.parse(text) : {}) as Record<string, unknown>;
+    data = (parseJsonLoose(text) ?? {}) as Record<string, unknown>;
   } catch {
     throw new ApiError(`Invalid JSON from server (HTTP ${res.status})`, res.status);
   }
@@ -190,7 +212,7 @@ async function fileParse<T extends FileEnvelope>(res: Response): Promise<T> {
   const text = await res.text();
   let data: FileEnvelope;
   try {
-    data = (text ? JSON.parse(text) : {}) as FileEnvelope;
+    data = (parseJsonLoose(text) ?? {}) as FileEnvelope;
   } catch {
     throw new ApiError(`Invalid JSON from server (HTTP ${res.status})`, res.status);
   }
