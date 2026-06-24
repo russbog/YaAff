@@ -5,9 +5,9 @@
 ## Version Bump
 
 > **REQUIRED**: Every merge into `multipleconfigs` must update the version so auto-updates work.
-> Run: `date +"%d.%m.%y" > admin/version.txt`
+> Run: `printf "%s.%d\n" "$(date -u +%y.%m.%d)" "$(( $(date -u +%-H) * 60 + $(date -u +%-M) ))" > admin/version.txt`
 
-- [ ] `admin/version.txt` updated to today's date (`DD.MM.YY`)
+- [ ] `admin/version.txt` updated (`YY.MM.DD.mm` format, UTC time)
 
 ## Testing
 

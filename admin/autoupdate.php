@@ -80,10 +80,16 @@ class AutoUpdater {
 
     private function convertVersionToTimestamp(string $version): int {
         $parts = explode('.', $version);
-        if (count($parts) !== 3) {
-            throw new Exception("Invalid version format");
+        if (count($parts) === 4) {
+            // New format: YY.MM.DD.mm (minutes since midnight)
+            $mm = intval($parts[3]);
+            return mktime(intdiv($mm, 60), $mm % 60, 0, intval($parts[1]), intval($parts[2]), 2000 + intval($parts[0]));
         }
-        return mktime(0, 0, 0, $parts[1], $parts[0], 2000 + intval($parts[2]));
+        if (count($parts) === 3) {
+            // Legacy format: DD.MM.YY
+            return mktime(0, 0, 0, intval($parts[1]), intval($parts[0]), 2000 + intval($parts[2]));
+        }
+        throw new Exception("Invalid version format: $version");
     }
 
     public function update(): array {

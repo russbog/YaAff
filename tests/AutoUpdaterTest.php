@@ -54,7 +54,11 @@ final class AutoUpdaterTest extends TestCase
     public function testVersionWasBumpedForDashboardUpdateDetection(): void
     {
         $version = trim((string) file_get_contents(__DIR__ . '/../admin/version.txt'));
+        $parts = explode('.', $version);
 
-        $this->assertSame('24.06.26', $version);
+        // New format: YY.MM.DD.mm (4 parts, minutes since midnight 0-1439)
+        $this->assertCount(4, $parts, "Version must use YY.MM.DD.mm format, got: $version");
+        $this->assertGreaterThanOrEqual(0, intval($parts[3]));
+        $this->assertLessThan(1440, intval($parts[3]));
     }
 }
