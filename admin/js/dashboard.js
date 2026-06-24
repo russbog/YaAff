@@ -352,9 +352,11 @@
             <div class="tt-row"><span><span class="tt-dot" style="background:#f7c948"></span>Revenue</span><b>${fmt.money(best.revenue)}</b></div>`;
         const wrap = canvas.parentElement;
         let left = best.x;
-        left = Math.max(72, Math.min(left, wrap.clientWidth - 72));
+        const tipW = tip.offsetWidth || 140;
+        left = Math.max(tipW / 2 + 4, Math.min(left, wrap.clientWidth - tipW / 2 - 4));
         tip.style.left = left + 'px';
-        tip.style.top = Math.max(0, Math.min(best.cy, best.vy) - 8) + 'px';
+        const tipTop = Math.max(0, Math.min(best.cy, best.vy) - 8);
+        tip.style.top = Math.min(tipTop, wrap.clientHeight - (tip.offsetHeight || 80) - 4) + 'px';
         tip.classList.add('show');
     }
 

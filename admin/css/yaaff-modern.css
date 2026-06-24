@@ -40,6 +40,8 @@ body::before {
     background-size: 42px 42px;
     mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent 75%);
     z-index: -1;
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 a {
@@ -404,6 +406,51 @@ label,
     .all-content-wrapper {
         padding: 18px 14px 32px;
     }
+
+    .camp-layout {
+        flex-direction: column;
+    }
+
+    .camp-sidebar {
+        position: static !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        height: auto !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--yaaff-border);
+    }
+
+    .camp-sidebar ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .camp-sidebar ul li a {
+        padding: 8px 14px !important;
+        border-left: 0 !important;
+        border-radius: 999px;
+    }
+
+    .camp-content {
+        padding: 0 14px 20px !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .header-right-menu .nav-link {
+        padding: 7px 10px !important;
+        font-size: 12px;
+    }
+
+    .yaaff-brand-copy strong {
+        font-size: 16px;
+    }
+
+    .geo-version {
+        font-size: 11px;
+        padding: 6px 10px;
+    }
 }
 
 #updateOverlay.overlay {
@@ -486,4 +533,33 @@ label,
     height: 1px;
     margin: 4px 0;
     background: #334155;
+}
+
+/* Focus-visible for keyboard accessibility */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid rgba(125, 211, 252, 0.6);
+    outline-offset: 2px;
+}
+
+/* Smooth scrollbar for all scrollable containers */
+.camp-sidebar,
+.tabulator-scroll-wrapper,
+.all-content-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

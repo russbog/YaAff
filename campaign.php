@@ -581,31 +581,29 @@ class ScriptsSettings implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
-            "scripts" => [
-                "backfix" => [
-                    "use" => $this->backfix,
-                    "urls" => $this->backfixUrls
+            "backfix" => [
+                "use" => $this->backfix,
+                "urls" => $this->backfixUrls
+            ],
+            "nextredirect" => [
+                "use" => $this->nextRedirectUse,
+                "rules" => $this->nextRedirectRules
+            ],
+            "submitredirect" => [
+                "use" => $this->submitRedirectUse,
+                "rules" => $this->submitRedirectRules
+            ],
+            "events" => [
+                "scroll" => [
+                    "use" => $this->scrollTrackingUse,
+                    "thresholds" => $this->scrollTrackingThresholds
                 ],
-                "nextredirect" => [
-                    "use" => $this->nextRedirectUse,
-                    "rules" => $this->nextRedirectRules
-                ],
-                "submitredirect" => [
-                    "use" => $this->submitRedirectUse,
-                    "rules" => $this->submitRedirectRules
-                ],
-                "events" => [
-                    "scroll" => [
-                        "use" => $this->scrollTrackingUse,
-                        "thresholds" => $this->scrollTrackingThresholds
-                    ],
-                    "time" => [
-                        "use" => $this->timeTrackingUse,
-                        "thresholds" => $this->timeTrackingThresholds
-                    ]
-                ],
-                "imageslazyload" => $this->imagesLazyLoad
-            ]
+                "time" => [
+                    "use" => $this->timeTrackingUse,
+                    "thresholds" => $this->timeTrackingThresholds
+                ]
+            ],
+            "imageslazyload" => $this->imagesLazyLoad
         ];
     }
 }
