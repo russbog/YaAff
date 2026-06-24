@@ -4,6 +4,7 @@ require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/db/db.php';
 require_once __DIR__ . '/cookies.php';
 require_once __DIR__ . '/redirect.php';
+require_once __DIR__ . '/logging.php';
 require_once __DIR__ . '/paths.php';
 require_once __DIR__ . '/requestfunc.php';
 global $db, $cloSettings;
@@ -51,48 +52,48 @@ else{
 }
 
 $useUTP = $cloSettings['useUTP'];
+$httpCode = (int)($res["info"]["http_code"] ?? 0);
 
-switch ($res["info"]["http_code"]) {
-    case 302:
-        $db->add_lead($clickid,$_POST);
-        $thankyouData = $_POST;
-        if (!empty($clickid)) {
-            $thankyouData['clickid'] = $clickid;
-            $click = $db->get_click_by_clickid($clickid);
-            if (!empty($click['userid'])) {
-                $thankyouData['userid'] = $click['userid'];
-            }
+if ($httpCode >= 300 && $httpCode < 400 && !empty($res["info"]["redirect_url"])) {
+    $db->add_lead($clickid,$_POST);
+    $thankyouData = $_POST;
+    if (!empty($clickid)) {
+        $thankyouData['clickid'] = $clickid;
+        $click = $db->get_click_by_clickid($clickid);
+        if (!empty($click['userid'])) {
+            $thankyouData['userid'] = $click['userid'];
         }
-        if ($useUTP) {
-            redirect("/thankyou/index.php?" . http_build_query($thankyouData));
-        } else {
-            redirect($res["info"]["redirect_url"]);
-        }
-        break;
-    case 200:
-        $db->add_lead($clickid, $_POST);
-        $thankyouData = $_POST;
-        if (!empty($clickid)) {
-            $thankyouData['clickid'] = $clickid;
-            $click = $db->get_click_by_clickid($clickid);
-            if (!empty($click['userid'])) {
-                $thankyouData['userid'] = $click['userid'];
-            }
-        }
-        if ($useUTP) {
-            echo redirect("/thankyou/index.php?" . http_build_query($thankyouData),"js");
-        } else {
-            echo $res["content"];
-        }
-        break;
-    default:
-        echo $fullpath."<br/>";
-        var_dump($res["content"]);
-        echo '<br/>';
-        var_dump($res["error"]);
-        echo '<br/>';
-        var_dump($res["info"]);
-        echo '<br/>';
-        var_dump($_POST);
-        exit();
+    }
+    if ($useUTP) {
+        redirect("/thankyou/index.php?" . http_build_query($thankyouData));
+    } else {
+        redirect($res["info"]["redirect_url"]);
+    }
+    return;
 }
+
+if ($httpCode >= 200 && $httpCode < 300) {
+    $db->add_lead($clickid, $_POST);
+    $thankyouData = $_POST;
+    if (!empty($clickid)) {
+        $thankyouData['clickid'] = $clickid;
+        $click = $db->get_click_by_clickid($clickid);
+        if (!empty($click['userid'])) {
+            $thankyouData['userid'] = $click['userid'];
+        }
+    }
+    if ($useUTP) {
+        echo redirect("/thankyou/index.php?" . http_build_query($thankyouData),"js");
+    } else {
+        echo $res["content"];
+    }
+    return;
+}
+
+add_error_log(
+    'Lead form submission failed. Url: ' . $fullpath .
+    '; HTTP: ' . $httpCode .
+    '; cURL error: ' . (string)($res["error"] ?? '')
+);
+http_response_code($httpCode >= 400 && $httpCode < 600 ? $httpCode : 502);
+echo 'Lead form submission failed';

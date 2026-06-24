@@ -891,8 +891,21 @@ class Db
             return false;
         }
 
+        $leadJson = json_encode($leaddata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($leadJson === false) {
+            add_log("warning", "Skipping lead addition - invalid lead data JSON for clickid: $clickid");
+            return false;
+        }
+
         $updateQuery = "UPDATE clicks SET status = :status, leaddata = :leaddata WHERE id = (SELECT id FROM clicks WHERE clickid = :clickid ORDER BY time DESC LIMIT 1)";
-        return $this->exec_update_query($updateQuery, [$status => DbDriver::TEXT, $leaddata => DbDriver::TEXT, $clickid => DbDriver::TEXT]);
+        return $this->exec_update_query(
+            $updateQuery,
+            [
+                ':status' => [$status, DbDriver::TEXT],
+                ':leaddata' => [$leadJson, DbDriver::TEXT],
+                ':clickid' => [$clickid, DbDriver::TEXT],
+            ]
+        );
     }
 
     public function update_status(string $clickid, string $status, float $payout): bool
