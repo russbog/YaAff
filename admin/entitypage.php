@@ -14,6 +14,7 @@ require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/entityschemas.php';
 require_once __DIR__ . '/dates.php';
 require_once __DIR__ . '/../paths.php';
+require_once __DIR__ . '/../auth/Auth.php';
 
 $entityType = $entityType ?? '';
 $schema = entity_schema($entityType);
@@ -21,6 +22,7 @@ if ($schema === null) {
     http_response_code(404);
     exit('Unknown entity type');
 }
+auth_require("$entityType.view");
 $calDs = Dates::get_calend_dates();
 $jsPath = get_cloaker_path() . 'js';
 $jsFsPath = __DIR__ . '/js';

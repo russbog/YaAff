@@ -11,6 +11,8 @@ require_once __DIR__ . '/Domain.php';
 require_once __DIR__ . '/Group.php';
 require_once __DIR__ . '/Rule.php';
 require_once __DIR__ . '/Channel.php';
+require_once __DIR__ . '/Role.php';
+require_once __DIR__ . '/User.php';
 
 /**
  * Factory for the generic {@see EntityRepository}, one per entity type, cached
@@ -32,6 +34,8 @@ class Repositories
         'domains'  => [Domain::class,  'Domains'],
         'rules'    => [Rule::class,    'Rules'],
         'channels' => [Channel::class, 'Channels'],
+        'roles'    => [Role::class,    'Roles'],
+        'users'    => [User::class,    'Users'],
         'groups'   => [Group::class,   'Groups'],
     ];
 
@@ -83,6 +87,16 @@ class Repositories
     public static function channels(DbDriver $driver): EntityRepository
     {
         return self::for($driver, Channel::TABLE, Channel::class);
+    }
+
+    public static function roles(DbDriver $driver): EntityRepository
+    {
+        return self::for($driver, Role::TABLE, Role::class);
+    }
+
+    public static function users(DbDriver $driver): EntityRepository
+    {
+        return self::for($driver, User::TABLE, User::class);
     }
 
     public static function groups(DbDriver $driver): EntityRepository

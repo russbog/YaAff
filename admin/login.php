@@ -3,6 +3,8 @@ require_once __DIR__ . "/password.php";
 require_once __DIR__ . "/securitycheck.php";
 require_once __DIR__ . "/../paths.php";
 
+$multiuser = auth_multiuser();
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $ip = getip();
     $rl = check_rate_limit($ip);
@@ -159,7 +161,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             const cursor = document.getElementById('cursor');
 
             // Focus input on page load
-            passwordInput.focus();
+            const initialFocus = document.getElementById('username') || passwordInput;
+            initialFocus.focus();
 
             // Handle cursor blinking
             let cursorVisible = true;
@@ -174,8 +177,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 fakeInput.textContent = 'X'.repeat(value.length);
             });
 
-            // Keep focus on the real input
-            document.addEventListener('click', () => passwordInput.focus());
+            // Keep focus on the real input (but allow the username field to take focus)
+            document.addEventListener('click', (e) => {
+                if (e.target && e.target.id === 'username') return;
+                passwordInput.focus();
+            });
             fakeInput.addEventListener('click', (e) => {
                 e.preventDefault();
                 passwordInput.focus();
@@ -191,6 +197,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 const password = passwordInput.value;
                 const formData = new FormData();
                 formData.append('password', password);
+                const usernameInput = document.getElementById('username');
+                if (usernameInput) formData.append('username', usernameInput.value);
 
                 try {
                     const response = await fetch('login.php', {
@@ -228,8 +236,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="login-container">
             <form id="login-form">
                 <h2>Welcome Back</h2>
+                <?php if ($multiuser): ?>
                 <div class="input-group">
-                    <label for="password">Enter Admin Password</label>
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="username" />
+                </div>
+                <?php endif; ?>
+                <div class="input-group">
+                    <label for="password"><?= $multiuser ? 'Password' : 'Enter Admin Password' ?></label>
                     <div class="password-container">
                         <input type="password" id="password" name="password" required autocomplete="off"/>
                         <div class="fake-input-container">

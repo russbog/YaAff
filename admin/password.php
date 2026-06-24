@@ -3,6 +3,7 @@ require_once __DIR__ . '/../logging.php';
 require_once __DIR__ . '/../settings.php';
 require_once __DIR__ . '/../cookies.php';
 require_once __DIR__ . '/ratelimit.php';
+require_once __DIR__ . '/../auth/Auth.php';
 
 function check_password($die = true): bool
 {
@@ -21,7 +22,12 @@ function check_password($die = true): bool
             add_log('trace','Loggedin is not true!');
     }
 
-    if (empty($pwd)){
+    // Multi-user mode (Phase 10): once accounts exist, login requires a username
+    // and is validated against the users table. Otherwise the legacy single
+    // shared-password login below applies.
+    $multiuser = auth_multiuser();
+
+    if (!$multiuser && empty($pwd)){
         add_log('trace','Empty admin password in settings!');
         return true;
     }
@@ -56,6 +62,23 @@ function check_password($die = true): bool
         }else{
             return false;
         }
+    }
+
+    if ($multiuser) {
+        $username = trim((string)($_REQUEST['username'] ?? ''));
+        if ($username === '' || !auth_attempt($username, (string)$_REQUEST['password'])) {
+            record_failed_attempt($ip);
+            $msg = "Incorrect username or password!";
+            add_log("login", $msg, true);
+            if ($die){
+                die($msg);
+            }else{
+                return false;
+            }
+        }
+        rl_reset($ip);
+        add_log("login", "Logged in as {$username}.", true);
+        return true;
     }
 
     if ($_REQUEST['password'] !== $pwd) {

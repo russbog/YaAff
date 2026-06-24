@@ -94,6 +94,8 @@
                 });
                 return `<select class="form-control" name="${name}">${opts}</select>`;
             }
+            case 'password':
+                return `<input type="password" class="form-control" name="${name}" value="" autocomplete="new-password" placeholder="${v ? '•••••••• (leave blank to keep)' : ''}" />`;
             case 'entityref':
                 return `<select class="form-control" name="${name}" data-ref="${esc(f.entity)}" data-val="${esc(v == null ? '' : v)}"><option value="">— none —</option></select>`;
             default:

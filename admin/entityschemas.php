@@ -188,6 +188,30 @@ function entity_schemas(): array
                 ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
             ],
         ],
+        'roles' => [
+            'title' => 'Roles',
+            'singular' => 'Role',
+            'icon' => 'bi-person-badge',
+            'fields' => [
+                ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
+                ['key' => 'description', 'label' => 'Description', 'type' => 'text'],
+                ['key' => 'permissions', 'label' => 'Permissions', 'type' => 'csv', 'help' => 'Comma-separated permission strings. Wildcards: * (all), offers.* (namespace), *.view (action). Form: <type>.view / <type>.manage, e.g. offers.manage, users.manage, reports.view.'],
+            ],
+        ],
+        'users' => [
+            'title' => 'Users',
+            'singular' => 'User',
+            'icon' => 'bi-people',
+            'fields' => [
+                ['key' => 'name', 'label' => 'Username', 'type' => 'text', 'required' => true],
+                ['key' => 'password', 'label' => 'Password', 'type' => 'password', 'help' => 'Stored only as a hash. Leave blank when editing to keep the current password.'],
+                ['key' => 'role', 'label' => 'Role', 'type' => 'entityref', 'entity' => 'roles', 'help' => 'Role granting permissions. The built-in "Admin" role grants everything.'],
+                ['key' => 'enabled', 'label' => 'Enabled', 'type' => 'checkbox', 'default' => true],
+                ['key' => 'permissions', 'label' => 'Extra permissions', 'type' => 'csv', 'help' => 'Optional permissions merged on top of the role. Same syntax as roles.'],
+                ['key' => 'api_token', 'label' => 'API token', 'type' => 'text', 'help' => 'Bearer token for the REST API (Phase 11). Keep secret.'],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+            ],
+        ],
     ];
 
     return $schemas;

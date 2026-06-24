@@ -13,6 +13,7 @@ require_once __DIR__ . '/securitycheck.php';
 require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/../entities/Repositories.php';
 require_once __DIR__ . '/entityschemas.php';
+require_once __DIR__ . '/../auth/Auth.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -34,6 +35,25 @@ if ($repo === null || $schema === null) {
 }
 
 $action = (string)($_REQUEST['action'] ?? 'list');
+
+// RBAC: viewing needs <type>.view, mutating needs <type>.manage. No-op in
+// legacy single-password mode (no user accounts yet).
+$needed = in_array($action, ['save', 'delete'], true) ? "$type.manage" : "$type.view";
+auth_require($needed, true);
+
+/** Mask secret fields (password hashes) before returning settings to the UI. */
+function redact_settings(array $schema, array $settings): array
+{
+    foreach ($schema['fields'] as $field) {
+        if (($field['type'] ?? '') === 'password') {
+            $k = $field['key'];
+            if (array_key_exists($k, $settings)) {
+                $settings[$k] = (string)$settings[$k] !== '' ? '********' : '';
+            }
+        }
+    }
+    return $settings;
+}
 
 /** Resolve (or create) a group by name for this entity type; returns its id. */
 function resolve_group_id(EntityRepository $groups, string $type, string $name): ?int
@@ -138,7 +158,7 @@ switch ($action) {
                 'id' => $e->id,
                 'name' => $e->name,
                 'group' => group_name($groups, $e->group_id),
-                'settings' => $e->settings,
+                'settings' => redact_settings($schema, $e->settings),
                 'updated_at' => $e->updated_at,
             ];
         }
@@ -157,7 +177,7 @@ switch ($action) {
                 'id' => $e->id,
                 'name' => $e->name,
                 'group' => group_name($groups, $e->group_id),
-                'settings' => $e->settings,
+                'settings' => redact_settings($schema, $e->settings),
             ],
         ]);
         // no break
@@ -191,6 +211,13 @@ switch ($action) {
                 continue;
             }
             if (!array_key_exists($key, $body)) {
+                continue;
+            }
+            if (($field['type'] ?? '') === 'password') {
+                $plain = (string)$body[$key];
+                if ($plain !== '') {
+                    $entity->set($key, password_hash($plain, PASSWORD_DEFAULT));
+                }
                 continue;
             }
             $entity->set($key, coerce_field($field, $body[$key]));
