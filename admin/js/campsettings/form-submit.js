@@ -184,3 +184,10 @@ document.getElementById("campsettings")?.addEventListener("submit", async (e) =>
     }
     return false;
 });
+
+document.getElementById("campaign-identifier")?.addEventListener("input", function () {
+    const preview = document.getElementById("campaign-url-preview");
+    if (!preview) return;
+    const identifier = this.value.trim().replace(/^\/+|\/+$/g, "").replace(/\s+/g, "-").replace(/[^A-Za-z0-9_-]/g, "");
+    preview.value = (preview.dataset.urlBase || "") + encodeURIComponent(identifier);
+});

@@ -5,6 +5,7 @@
     "localhost:48960"
   ],
   "apikey": "test",
+  "identifier": "campaign",
   "saveuserflow": false,
   "white": {
     "action": "error",
