@@ -115,6 +115,7 @@ $headerDateConfig = [
     <?php
         $navItems = [
             'index.php'    => ['Campaigns', 'bi-megaphone'],
+            'dashboard.php' => ['Dashboard', 'bi-speedometer2'],
             'offers.php'   => ['Offers', 'bi-bullseye'],
             'landings.php' => ['Landings', 'bi-file-earmark-richtext'],
             'sources.php'  => ['Sources', 'bi-broadcast'],
