@@ -1,0 +1,14 @@
+[
+    { "name": "Google", "hosts": ["google."], "keyword_params": ["q"] },
+    { "name": "Bing", "hosts": ["bing.com"], "keyword_params": ["q"] },
+    { "name": "Yahoo", "hosts": ["search.yahoo.", "yahoo.com"], "keyword_params": ["p"] },
+    { "name": "DuckDuckGo", "hosts": ["duckduckgo.com"], "keyword_params": ["q"] },
+    { "name": "Yandex", "hosts": ["yandex.", "ya.ru"], "keyword_params": ["text"] },
+    { "name": "Baidu", "hosts": ["baidu.com"], "keyword_params": ["wd", "word"] },
+    { "name": "Ecosia", "hosts": ["ecosia.org"], "keyword_params": ["q"] },
+    { "name": "Brave", "hosts": ["search.brave.com"], "keyword_params": ["q"] },
+    { "name": "Ask", "hosts": ["ask.com"], "keyword_params": ["q"] },
+    { "name": "AOL", "hosts": ["search.aol."], "keyword_params": ["q"] },
+    { "name": "Naver", "hosts": ["naver.com"], "keyword_params": ["query"] },
+    { "name": "Seznam", "hosts": ["seznam.cz"], "keyword_params": ["q"] }
+]

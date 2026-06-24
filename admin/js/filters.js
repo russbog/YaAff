@@ -141,6 +141,122 @@ var tdsFilters = [
         size: 70
     },
     {
+        id: 'region',
+        label: 'Region',
+        input: 'text',
+        type: 'string',
+        operators: ['in', 'not_in', 'contains', 'not_contains', 'matches', 'not_matches'],
+        placeholder: 'California,Bavaria (requires GeoLite2-City)',
+        size: 70
+    },
+    {
+        id: 'city',
+        label: 'City',
+        input: 'text',
+        type: 'string',
+        operators: ['in', 'not_in', 'contains', 'not_contains', 'matches', 'not_matches'],
+        placeholder: 'Los Angeles,Berlin (requires GeoLite2-City)',
+        size: 70
+    },
+    {
+        id: 'connection_type',
+        label: 'Connection',
+        input: 'text',
+        type: 'string',
+        operators: ['in', 'not_in'],
+        placeholder: 'cellular,corporate,cable/dsl'
+    },
+    {
+        id: 'search_engine',
+        label: 'Search Engine',
+        input: 'text',
+        type: 'string',
+        operators: ['in', 'not_in'],
+        placeholder: 'Google,Bing,Yandex'
+    },
+    {
+        id: 'keyword',
+        label: 'Keyword',
+        input: 'text',
+        type: 'string',
+        operators: ['contains', 'not_contains', 'in', 'not_in', 'matches', 'not_matches'],
+        size: 70
+    },
+    {
+        id: 'site',
+        label: 'Site (referer host)',
+        input: 'text',
+        type: 'string',
+        operators: ['in', 'not_in', 'contains', 'not_contains', 'matches', 'not_matches'],
+        size: 70
+    },
+    {
+        id: 'creative_id',
+        label: 'Creative ID',
+        input: 'text',
+        type: 'string',
+        operators: ['in', 'not_in', 'contains', 'not_contains'],
+        size: 50
+    },
+    {
+        id: 'x_requested_with',
+        label: 'X-Requested-With',
+        input: 'text',
+        type: 'string',
+        operators: ['in', 'not_in', 'contains', 'not_contains'],
+        placeholder: 'com.android.chrome',
+        size: 70
+    },
+    {
+        id: 'bot',
+        label: 'Bot',
+        type: 'integer',
+        input: 'radio',
+        values: {
+            0: 'Detected',
+            1: 'NOT Detected'
+        },
+        operators: ['equal']
+    },
+    {
+        id: 'uniqueness',
+        label: 'Uniqueness',
+        type: 'integer',
+        input: 'radio',
+        values: {
+            1: 'Unique (first click)',
+            0: 'Repeat'
+        },
+        operators: ['equal']
+    },
+    {
+        id: 'timetable',
+        label: 'Timetable (JSON)',
+        type: 'string',
+        input: 'text',
+        operators: ['in', 'not_in'],
+        placeholder: '[{"days":[1,2,3,4,5],"from":9,"to":18}] (1=Mon..7=Sun)',
+        size: 70
+    },
+    {
+        id: 'date_between',
+        label: 'Date between',
+        type: 'string',
+        input: 'text',
+        operators: ['in', 'not_in'],
+        placeholder: '2021-01-01,2021-12-31',
+        size: 50
+    },
+    {
+        id: 'click_limit',
+        label: 'Click limit (JSON)',
+        type: 'string',
+        input: 'text',
+        operators: ['in'],
+        placeholder: '{"window":"day","limit":1000} window: hour|day|total',
+        size: 50
+    },
+    {
         id: 'urlparam',
         label: 'URL Parameter',
         type: 'string',
@@ -184,5 +300,19 @@ var paramOperators = [
     multiple: false,
     apply_to: ['string'],
     label: 'not exists'
+  },
+  {
+    type: 'matches',
+    nb_inputs: 1,
+    multiple: false,
+    apply_to: ['string'],
+    label: 'matches (mask/regex)'
+  },
+  {
+    type: 'not_matches',
+    nb_inputs: 1,
+    multiple: false,
+    apply_to: ['string'],
+    label: 'not matches (mask/regex)'
   }
 ];

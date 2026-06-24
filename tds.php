@@ -5,6 +5,7 @@ require_once __DIR__ . '/campaign.php';
 require_once __DIR__ . '/core.php';
 require_once __DIR__ . '/main.php';
 require_once __DIR__ . '/cookies.php';
+require_once __DIR__ . '/flow/FlowSelector.php';
 
 class Tds
 {
@@ -17,6 +18,7 @@ class Tds
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
             $clkr = new FiltrationCore();
+            $clkr->setContext($c->campaignId);
 
             if ($clkr->click_matches_filters($c->white->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
@@ -47,6 +49,7 @@ class Tds
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
             $clkr = new FiltrationCore($prefill);
+            $clkr->setContext($c->campaignId);
 
             if ($clkr->click_matches_filters($c->white->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
@@ -148,6 +151,7 @@ class Tds
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
             $clkr = new FiltrationCore($prefill);
+            $clkr->setContext($c->campaignId);
 
             if ($clkr->click_matches_filters($c->white->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
@@ -171,11 +175,17 @@ class Tds
 
     public static function pick_flow_index(FiltrationCore $clkr, array $flows): ?int
     {
+        $candidates = [];
         for ($i = 0; $i < count($flows); $i++) {
-            if ($clkr->click_matches_filters($flows[$i]->filters)) {
-                return $i;
-            }
+            $flow = $flows[$i];
+            $clkr->setContext($clkr->campaignId, $flow->name);
+            $candidates[] = [
+                'index' => $i,
+                'matches' => $clkr->click_matches_filters($flow->filters),
+                'type' => $flow->type ?? 'regular',
+                'weight' => $flow->weight ?? 1,
+            ];
         }
-        return null;
+        return FlowSelector::select($candidates);
     }
 }

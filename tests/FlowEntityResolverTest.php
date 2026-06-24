@@ -3,7 +3,9 @@
 use PHPUnit\Framework\TestCase;
 
 $GLOBALS['cloSettings'] = ['debug' => false];
-define('YELLOWTDS_NO_DB_BOOTSTRAP', true);
+if (!defined('YELLOWTDS_NO_DB_BOOTSTRAP')) {
+    define('YELLOWTDS_NO_DB_BOOTSTRAP', true);
+}
 
 require_once __DIR__ . '/../db/drivers/SqliteDriver.php';
 require_once __DIR__ . '/../entities/Repositories.php';

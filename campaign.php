@@ -53,7 +53,7 @@ class WhiteSettings implements JsonSerializable
     public string $action;
     public array $folderNames;
     public array $redirectUrls;
-    public int $redirectType;
+    public int|string $redirectType;
     public array $curlUrls;
     public array $errorCodes;
     public bool $domainFilterEnabled;
@@ -67,7 +67,7 @@ class WhiteSettings implements JsonSerializable
         $ws->action = $s['action'];
         $ws->folderNames = $s['folders'];
         $ws->redirectUrls = $s['redirect']['urls'];
-        $ws->redirectType = $s['redirect']['type'];
+        $ws->redirectType = $s['redirect']['type'] ?? 302;
         $ws->curlUrls = $s['curls'];
         $ws->errorCodes = $s['errorcodes'];
         $ws->domainFilterEnabled = $s['domainfilter']['use'];
@@ -118,7 +118,7 @@ class DomainWhiteSettings implements JsonSerializable
     public string $action;
     public array $folderNames;
     public array $redirectUrls;
-    public int $redirectType;
+    public int|string $redirectType;
     public array $curlUrls;
     public array $errorCodes;
     public array $loadMode;
@@ -197,6 +197,10 @@ class FlowSettings implements JsonSerializable
     public string $distribution;
     public string $optimize_for;
     public string $optimize_mode;
+    /** Flow type: forced | regular | default (Keitaro-style stream selection). */
+    public string $type;
+    /** Relative weight used when several regular flows match. */
+    public int $weight;
 
     public static function fromArray($arr): FlowSettings
     {
@@ -210,6 +214,9 @@ class FlowSettings implements JsonSerializable
         $fs->distribution = $arr['distribution'] ?? 'equal';
         $fs->optimize_for = $arr['optimize_for'] ?? 'Lead';
         $fs->optimize_mode = $arr['optimize_mode'] ?? 'funnels';
+        $type = strtolower((string)($arr['type'] ?? 'regular'));
+        $fs->type = in_array($type, ['forced', 'regular', 'default'], true) ? $type : 'regular';
+        $fs->weight = isset($arr['weight']) ? max(0, (int)$arr['weight']) : 1;
         return $fs;
     }
 
@@ -221,7 +228,9 @@ class FlowSettings implements JsonSerializable
             "steps" => $this->steps,
             "distribution" => $this->distribution,
             "optimize_for" => $this->optimize_for,
-            "optimize_mode" => $this->optimize_mode
+            "optimize_mode" => $this->optimize_mode,
+            "type" => $this->type,
+            "weight" => $this->weight
         ];
     }
 
@@ -242,7 +251,7 @@ class StepSettings implements JsonSerializable
     public array $folderNames;
     /** @var array<array{url: string, label: string}> */
     public array $redirectUrls;
-    public int $redirectType;
+    public int|string $redirectType;
     public array $weights;
     public array $folderLoadTypes;
     /** @var int[] Referenced offer ids (resolved to redirect URLs at runtime). */
