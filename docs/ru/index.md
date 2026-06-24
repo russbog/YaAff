@@ -33,6 +33,13 @@
 - [Фаза 7: Отчётность — real-time дашборд, графики и экспорт по расписанию](phase-7-reporting.md)
 - [Фаза 8: Движок правил + планировщик](phase-8-rules-scheduler.md)
 - [Фаза 9: Уведомления (Telegram, Webhook, Email)](phase-9-notifications.md)
+- [Фаза 10: Мультипользовательский режим + RBAC](phase-10-rbac.md)
+- [Фаза 11: REST API + OpenAPI](phase-11-rest-api.md)
+- [Фаза 12: Драйвер MySQL/MariaDB + бэкап/restore/retention](phase-12-mysql-data.md)
+
+## Паритет с Keitaro
+
+- [Матрица паритета с Keitaro](parity-matrix.md)
 
 ## С чего начать
 
