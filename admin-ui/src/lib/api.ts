@@ -164,6 +164,42 @@ async function filePost<T extends FileEnvelope>(
   return fileParse<T>(res);
 }
 
+export interface ConversionImportResult {
+  imported: number;
+  skipped: number;
+  errors: string[];
+}
+
+export const conversionsApi = {
+  // POST conversions.php?action=import with a multipart CSV (clickid, status
+  // required; payout, currency, revenue, tid optional).
+  importCsv: async (file: File): Promise<ConversionImportResult> => {
+    const fd = new FormData();
+    fd.append('csv_file', file);
+    const res = await fetch(url('conversions.php', { action: 'import' }), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      body: fd,
+    });
+    const text = await res.text();
+    let data: { error?: string } & Partial<ConversionImportResult>;
+    try {
+      data = (text ? JSON.parse(text) : {}) as typeof data;
+    } catch {
+      throw new ApiError(`Invalid JSON from server (HTTP ${res.status})`, res.status);
+    }
+    if (!res.ok || data.error) {
+      throw new ApiError(data.error || `Import failed (HTTP ${res.status})`, res.status);
+    }
+    return {
+      imported: data.imported ?? 0,
+      skipped: data.skipped ?? 0,
+      errors: data.errors ?? [],
+    };
+  },
+};
+
 export type FolderType = 'landing' | 'white';
 
 export const folderApi = {

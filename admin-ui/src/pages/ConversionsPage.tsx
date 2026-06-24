@@ -1,15 +1,17 @@
-import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ExternalLink, TrendingUp } from 'lucide-react';
+import { Upload, TrendingUp } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Select } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { DataTable } from '@/components/data/DataTable';
-import { useBootstrap } from '@/providers/BootstrapProvider';
-import { spa, API_BASE } from '@/lib/api';
+import { useToast } from '@/providers/ToastProvider';
+import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
+import { spa, conversionsApi, type ConversionImportResult } from '@/lib/api';
 import { fmtDateTime, fmtMoney, toNumber } from '@/lib/format';
 import type { Conversion } from '@/lib/types';
 
@@ -19,12 +21,35 @@ function humanize(key: string): string {
 
 export function ConversionsPage() {
   const { campaignsList } = useBootstrap();
+  const canManage = useCan()('conversions.manage');
+  const toast = useToast();
+  const qc = useQueryClient();
   const [campId, setCampId] = useState(0);
+  const [importOpen, setImportOpen] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<ConversionImportResult | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['conversions', campId],
     queryFn: () => spa.conversions({ campId, limit: 1000 }),
   });
+
+  const importMut = useMutation({
+    mutationFn: (f: File) => conversionsApi.importCsv(f),
+    onSuccess: (r) => {
+      setResult(r);
+      toast.success(`Imported ${r.imported}, skipped ${r.skipped}`);
+      qc.invalidateQueries({ queryKey: ['conversions'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const closeImport = () => {
+    setImportOpen(false);
+    setFile(null);
+    setResult(null);
+  };
 
   const rows = useMemo(() => data?.data ?? [], [data]);
 
@@ -66,11 +91,11 @@ export function ConversionsPage() {
               </option>
             ))}
           </Select>
-          <a href={`${API_BASE}conversions.php`} target="_blank" rel="noreferrer">
-            <Button variant="secondary" size="sm">
-              <ExternalLink size={13} /> Import / classic
+          {canManage && (
+            <Button variant="secondary" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload size={13} /> Import CSV
             </Button>
-          </a>
+          )}
         </div>
       }
     >
@@ -96,6 +121,58 @@ export function ConversionsPage() {
           />
         </div>
       )}
+
+      <Modal
+        open={importOpen}
+        onClose={closeImport}
+        title="Import conversions (CSV)"
+        description="Required columns: clickid, status. Optional: payout, currency, revenue, tid."
+        footer={
+          <>
+            <Button variant="ghost" onClick={closeImport}>
+              {result ? 'Close' : 'Cancel'}
+            </Button>
+            <Button
+              variant="primary"
+              loading={importMut.isPending}
+              disabled={!file}
+              onClick={() => file && importMut.mutate(file)}
+            >
+              <Upload size={14} /> Import
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => {
+              setFile(e.target.files?.[0] ?? null);
+              setResult(null);
+            }}
+            className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-brand-fg file:font-medium hover:file:opacity-90"
+          />
+          {file && <p className="text-xs text-muted">{file.name} · {(file.size / 1024).toFixed(1)} KB</p>}
+          {result && (
+            <div className="rounded-md border border-border bg-surface-2/40 p-3 text-sm space-y-1">
+              <div className="flex gap-3">
+                <Badge tone="success">Imported {result.imported}</Badge>
+                <Badge tone="neutral">Skipped {result.skipped}</Badge>
+                {result.errors.length > 0 && <Badge tone="danger">{result.errors.length} errors</Badge>}
+              </div>
+              {result.errors.length > 0 && (
+                <ul className="mt-2 max-h-40 overflow-auto text-xs text-danger list-disc pl-4">
+                  {result.errors.slice(0, 50).map((er, i) => (
+                    <li key={i}>{er}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
     </AppShell>
   );
 }
