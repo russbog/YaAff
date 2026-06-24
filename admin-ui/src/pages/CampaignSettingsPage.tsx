@@ -1,23 +1,16 @@
 import { useParams } from 'react-router-dom';
-import { LegacyPage } from './LegacyPage';
+import { CampaignEditor } from '@/components/campaign/CampaignEditor';
 import { useBootstrap } from '@/providers/BootstrapProvider';
 
-// Campaign / TDS builder hosted in-shell. Runs on the existing PHP campaign
-// settings engine (campsettings.php) chrome-free so routing rules, flows,
-// safe page, bot protection and postbacks keep full parity.
+// Native campaign / TDS builder. Loads settings via spa.php?r=campaign and
+// saves them back through campeditor.php?action=save (same contract the legacy
+// form used), so routing rules, flows, safe page, scripts and postbacks keep
+// full parity while running entirely in the modern shell.
 export function CampaignSettingsPage() {
   const { id } = useParams<{ id: string }>();
   const campId = Number(id);
   const { campaignsList } = useBootstrap();
-  const name =
-    campaignsList.find((c) => c.id === campId)?.name || `Campaign #${campId}`;
+  const name = campaignsList.find((c) => c.id === campId)?.name || `Campaign #${campId}`;
 
-  return (
-    <LegacyPage
-      title={name}
-      file="campsettings.php"
-      params={{ campId }}
-      backTo="/campaigns"
-    />
-  );
+  return <CampaignEditor campId={campId} name={name} />;
 }

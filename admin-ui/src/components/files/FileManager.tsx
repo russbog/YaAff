@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Spinner, ErrorState, EmptyState } from '@/components/ui/States';
 import { useToast } from '@/providers/ToastProvider';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
-import { fileApi, type FileNode } from '@/lib/api';
+import { fileApi, type FileNode, type FolderType } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
 const PHP_EXT = /\.(php|phtml)$/i;
@@ -107,10 +107,12 @@ export function FileManager({
   folder,
   title,
   onClose,
+  type = 'landing',
 }: {
   folder: string;
   title?: string;
   onClose: () => void;
+  type?: FolderType;
 }) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -122,12 +124,12 @@ export function FileManager({
   const [dirty, setDirty] = useState(false);
 
   const treeQuery = useQuery({
-    queryKey: ['lfiles', folder],
-    queryFn: () => fileApi.list(folder),
+    queryKey: ['lfiles', type, folder],
+    queryFn: () => fileApi.list(folder, type),
   });
 
   const readMut = useMutation({
-    mutationFn: (file: string) => fileApi.read(folder, file),
+    mutationFn: (file: string) => fileApi.read(folder, file, type),
     onSuccess: (r) => {
       setContent(r.content);
       setActiveFile(r.file);
@@ -137,7 +139,7 @@ export function FileManager({
   });
 
   const saveMut = useMutation({
-    mutationFn: () => fileApi.save(folder, activeFile as string, content),
+    mutationFn: () => fileApi.save(folder, activeFile as string, content, type),
     onSuccess: () => {
       toast.success('Saved');
       setDirty(false);
@@ -145,7 +147,7 @@ export function FileManager({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ['lfiles', folder] });
+  const refresh = () => qc.invalidateQueries({ queryKey: ['lfiles', type, folder] });
 
   const openFile = async (n: FileNode) => {
     if (!isEditable(n.name)) {
@@ -168,7 +170,7 @@ export function FileManager({
 
   const renameMut = useMutation({
     mutationFn: ({ path, newName }: { path: string; newName: string }) =>
-      fileApi.rename(folder, path, newName),
+      fileApi.rename(folder, path, newName, type),
     onSuccess: () => {
       toast.success('Renamed');
       refresh();
@@ -177,7 +179,7 @@ export function FileManager({
   });
 
   const deleteMut = useMutation({
-    mutationFn: (path: string) => fileApi.remove(folder, path),
+    mutationFn: (path: string) => fileApi.remove(folder, path, type),
     onSuccess: (_d, path) => {
       toast.success('Deleted');
       if (activeFile === path) {
@@ -190,7 +192,7 @@ export function FileManager({
   });
 
   const uploadMut = useMutation({
-    mutationFn: (file: File) => fileApi.upload(folder, file, ''),
+    mutationFn: (file: File) => fileApi.upload(folder, file, '', type),
     onSuccess: () => {
       toast.success('Uploaded');
       refresh();
