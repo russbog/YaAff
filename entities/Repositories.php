@@ -6,6 +6,7 @@ require_once __DIR__ . '/Network.php';
 require_once __DIR__ . '/Source.php';
 require_once __DIR__ . '/Offer.php';
 require_once __DIR__ . '/Landing.php';
+require_once __DIR__ . '/Integration.php';
 require_once __DIR__ . '/Group.php';
 
 /**
@@ -24,6 +25,7 @@ class Repositories
         'sources'  => [Source::class,  'Sources'],
         'offers'   => [Offer::class,   'Offers'],
         'landings' => [Landing::class, 'Landings'],
+        'integrations' => [Integration::class, 'Integrations'],
         'groups'   => [Group::class,   'Groups'],
     ];
 
@@ -55,6 +57,11 @@ class Repositories
     public static function landings(DbDriver $driver): EntityRepository
     {
         return self::for($driver, Landing::TABLE, Landing::class);
+    }
+
+    public static function integrations(DbDriver $driver): EntityRepository
+    {
+        return self::for($driver, Integration::TABLE, Integration::class);
     }
 
     public static function groups(DbDriver $driver): EntityRepository

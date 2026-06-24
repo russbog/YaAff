@@ -14,3 +14,5 @@ bases/*.mmdb
 bases/test.txt
 agents.md
 migrate_userid_clickid.php
+/vendor
+/composer.phar

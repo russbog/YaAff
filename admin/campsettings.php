@@ -3,6 +3,7 @@ require_once __DIR__ . '/securitycheck.php';
 require_once __DIR__ . '/campinit.php';
 require_once __DIR__ . '/../paths.php';
 require_once __DIR__ . '/../abtest.php';
+require_once __DIR__ . '/../entities/Repositories.php';
 global $c, $db, $campId;
 ?>
 <!doctype html>
@@ -1116,6 +1117,66 @@ global $c, $db, $campId;
                     <?php } ?>
                 </div>
                 <a id="add-s2s-item" class="btn btn-primary">+ Add</a>
+            </div>
+            </div>
+
+            <div class="flow-group">
+            <span class="flow-group-title">Conversion Settings</span>
+            <div class="form-group-inner">
+                <div class="row">
+                    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                        <label class="login2 pull-left pull-left-pro">
+                        <i class="bi bi-info-circle admin-info-icon" title="Dedup key prevents duplicate conversions per campaign. clickid_tid=unique by both click + transaction, tid=unique by transaction only, clickid=one conversion per click max."></i>
+                        Dedup key:
+                        </label>
+                    </div>
+                    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                        <select class="form-select" name="postback.dedup_key">
+                            <option value="clickid_tid"<?= ($c->postback->dedupKey === 'clickid_tid') ? ' selected' : '' ?>>Click ID + Transaction ID</option>
+                            <option value="tid"<?= ($c->postback->dedupKey === 'tid') ? ' selected' : '' ?>>Transaction ID only</option>
+                            <option value="clickid"<?= ($c->postback->dedupKey === 'clickid') ? ' selected' : '' ?>>Click ID only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row" style="margin-top:12px">
+                    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                        <label class="login2 pull-left pull-left-pro">
+                        <i class="bi bi-info-circle admin-info-icon" title="When a conversion arrives, these integrations will be fired (if their status filter matches). Manage integrations in the Conversion APIs page."></i>
+                        Conversion API integrations:
+                        </label>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
+                        <?php
+                        $allIntegrations = Repositories::integrations($db->driver())->findAll();
+                        if (empty($allIntegrations)) {
+                            echo '<em>No integrations configured. <a href="integrations.php">Create one</a></em>';
+                        } else {
+                            foreach ($allIntegrations as $integ) {
+                                $checked = in_array((int)$integ->id, $c->postback->integrationIds, true) ? ' checked' : '';
+                        ?>
+                        <div class="form-check form-switch">
+                            <label for="integ_<?= (int)$integ->id ?>" class="form-check-label"><?= htmlspecialchars($integ->name ?: ('Integration #' . $integ->id)) ?></label>
+                            <input id="integ_<?= (int)$integ->id ?>" type="checkbox" class="form-check-input" name="postback.integrations[]" value="<?= (int)$integ->id ?>"<?= $checked ?> />
+                        </div>
+                        <?php
+                            }
+                        }
+                        ?>
+                    </div>
+                </div>
+                <div class="row" style="margin-top:12px">
+                    <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12">
+                        <label class="login2 pull-left pull-left-pro">
+                            <i class="bi bi-info-circle admin-info-icon" title="Use this pixel URL on your landing/thank-you page to fire conversions from the browser (JS/img). Parameters: clickid (required), status, payout, currency, tid."></i>
+                            Conversion pixel URL:
+                        </label>
+                    </div>
+                    <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12">
+                        <div class="input-group custom-go-button">
+                            <input type="text" readonly class="form-control" value="<?= $cloakerRoot ?>/api/pixel.php?clickid={clickid}&status=lead&payout=0"/>
+                        </div>
+                    </div>
+                </div>
             </div>
             </div>
             </section>

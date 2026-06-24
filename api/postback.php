@@ -2,11 +2,11 @@
 
 require_once __DIR__ . '/../logging.php';
 require_once __DIR__ . '/../db/db.php';
-require_once __DIR__ . '/../macros.php';
 require_once __DIR__ . '/../paths.php';
 require_once __DIR__ . '/../requestfunc.php';
 require_once __DIR__ . '/../campaign.php';
 require_once __DIR__ . '/../currency.php';
+require_once __DIR__ . '/conversion_handler.php';
 global $db;
 
 $curLink = (is_https() ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
@@ -64,50 +64,14 @@ if ($inner_status === '') {
 
 $currency = strtoupper($_REQUEST['currency'] ?? 'USD');
 $payout = CurrencyConverter::convert($payout, $currency);
+$revenue = isset($_REQUEST['revenue']) && is_numeric($_REQUEST['revenue'])
+    ? CurrencyConverter::convert($_REQUEST['revenue'], $currency)
+    : (float)$payout;
+$tid = (string)($_REQUEST['tid'] ?? $_REQUEST['transaction_id'] ?? '');
 
-$updated = $db->update_status($clickid, $inner_status, $payout);
+$source = 'postback:' . ($_SERVER['REMOTE_ADDR'] ?? '');
+$result = register_conversion($db, $c, $click, $inner_status, (float)$payout, (float)$revenue, $currency, $tid, $_REQUEST, $source);
 
-if ($updated) {
-    process_s2s_posbacks($c->postback->s2sPostbacks, $inner_status, $click);
-    http_response_code(200);
-    $msg = 'Postback for clickid ' . $clickid . ' with status ' . $status . ' and payout ' . $payout . ' ' . $currency . ' accepted.';
-    add_log('postback', $msg);
-    echo $msg;
-} else {
-    http_response_code(404);
-    $msg = 'Postback for clickid ' . $clickid . ' with status ' . $status . ' and payout ' . $payout . ' ' . $currency . ' NOT accepted! Clickid NOT FOUND.';
-    add_log('postback', $msg);
-    echo $msg;
-}
-
-function process_s2s_posbacks(array $s2s_postbacks, string $inner_status, array $click): void
-{
-    $clickid = (string)($click['clickid'] ?? '');
-    $userid = (string)($click['userid'] ?? '');
-    $mp = new MacrosProcessor(null, $click, $clickid, $userid);
-    foreach ($s2s_postbacks as $s2s) {
-        if (empty($s2s->url)) {
-            continue;
-        }
-        if (!in_array($inner_status, $s2s->events, true)) {
-            continue;
-        }
-        $final_url = str_replace('{status}', $inner_status, $s2s->url);
-        $final_url = $mp->replace_url_macros($final_url);
-        $s2s_res = '';
-        switch ($s2s->method) {
-            case 'GET':
-                $s2s_res = get($final_url);
-                break;
-            case 'POST':
-                $urlParts = explode('?', $final_url);
-                $params = [];
-                if (count($urlParts) > 1) {
-                    parse_str($urlParts[1], $params);
-                }
-                $s2s_res = post($urlParts[0], $params);
-                break;
-        }
-        add_log('postback', $s2s->method . ', ' . $final_url . ', ' . $inner_status . ', ' . $s2s_res['info']['http_code']);
-    }
-}
+http_response_code(200);
+add_log('postback', $result['message']);
+echo $result['message'];

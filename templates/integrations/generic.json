@@ -1,0 +1,16 @@
+{
+    "name": "Generic HTTP Conversion API",
+    "settings": {
+        "type": "generic",
+        "method": "POST",
+        "url": "https://YOUR_PLATFORM/conversions",
+        "content_type": "application/json",
+        "headers": {
+            "Authorization": "Bearer YOUR_TOKEN"
+        },
+        "body": "{\"click_id\":\"{clickid}\",\"event\":\"{status}\",\"value\":{payout},\"currency\":\"{currency}\",\"timestamp\":{time}}",
+        "statuses": [],
+        "enabled": true,
+        "note": "Generic starting point. Replace URL/headers/body and pick statuses. Tokens: {clickid} {status} {payout} {revenue} {currency} {time} {ip} {country} {ua} {c.PARAM} {sub_id_N}."
+    }
+}

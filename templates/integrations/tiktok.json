@@ -1,0 +1,16 @@
+{
+    "name": "TikTok Events API",
+    "settings": {
+        "type": "tiktok",
+        "method": "POST",
+        "url": "https://business-api.tiktok.com/open_api/v1.3/event/track/",
+        "content_type": "application/json",
+        "headers": {
+            "Access-Token": "YOUR_ACCESS_TOKEN"
+        },
+        "body": "{\"event_source\":\"web\",\"event_source_id\":\"YOUR_PIXEL_ID\",\"data\":[{\"event\":\"{status}\",\"event_time\":{time},\"event_id\":\"{clickid}\",\"user\":{\"ip\":\"{ip}\",\"user_agent\":\"{ua}\",\"ttclid\":\"{c.ttclid}\"},\"properties\":{\"value\":{payout},\"currency\":\"{currency}\"}}]}",
+        "statuses": ["Purchase", "Lead"],
+        "enabled": true,
+        "note": "Set YOUR_ACCESS_TOKEN and YOUR_PIXEL_ID (event_source_id). ttclid is read from click params {c.ttclid}; capture it from the landing URL."
+    }
+}

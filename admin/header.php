@@ -119,6 +119,8 @@ $headerDateConfig = [
             'landings.php' => ['Landings', 'bi-file-earmark-richtext'],
             'sources.php'  => ['Sources', 'bi-broadcast'],
             'networks.php' => ['Networks', 'bi-diagram-3'],
+            'integrations.php' => ['Conversion APIs', 'bi-cloud-upload'],
+            'conversions.php' => ['Conversions', 'bi-graph-up-arrow'],
         ];
     ?>
     <div class="entity-nav-area">
