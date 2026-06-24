@@ -112,6 +112,33 @@ $headerDateConfig = [
             </div>
         </div>
     </div>
+    <?php
+        $navItems = [
+            'index.php'    => ['Campaigns', 'bi-megaphone'],
+            'offers.php'   => ['Offers', 'bi-bullseye'],
+            'landings.php' => ['Landings', 'bi-file-earmark-richtext'],
+            'sources.php'  => ['Sources', 'bi-broadcast'],
+            'networks.php' => ['Networks', 'bi-diagram-3'],
+        ];
+    ?>
+    <div class="entity-nav-area">
+        <div class="container-fluid">
+            <ul class="entity-nav">
+                <?php foreach ($navItems as $file => $info): ?>
+                    <li class="<?= $headerPage === $file ? 'active' : '' ?>">
+                        <a href="<?= $file ?>"><i class="bi <?= $info[1] ?>"></i> <?= htmlspecialchars($info[0]) ?></a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
+    <style>
+        .entity-nav-area { border-top: 1px solid rgba(255,255,255,0.08); }
+        .entity-nav { list-style: none; display: flex; gap: 4px; margin: 0; padding: 6px 0; flex-wrap: wrap; }
+        .entity-nav li a { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; color: #c8c8c8; text-decoration: none; font-size: 14px; }
+        .entity-nav li a:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .entity-nav li.active a { background: #f7c948; color: #1a1a1a; font-weight: 600; }
+    </style>
 </div>
 <script id="headerDateConfig" type="application/json">
     <?=json_encode($headerDateConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>

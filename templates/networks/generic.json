@@ -1,0 +1,18 @@
+{
+    "name": "Generic CPA Network",
+    "settings": {
+        "currency": "USD",
+        "postback_url": "https://YOUR_TRACKER_DOMAIN/postback.php?subid={subid}&status={status}&payout={payout}&currency={currency}",
+        "status_map": {
+            "lead": "lead",
+            "sale": "sale",
+            "approved": "sale",
+            "confirmed": "sale",
+            "rejected": "rejected",
+            "trash": "rejected",
+            "hold": "hold",
+            "pending": "hold"
+        },
+        "note": "Generic starting point. Replace the postback URL and adjust the status mapping to match your network's exact status names."
+    }
+}

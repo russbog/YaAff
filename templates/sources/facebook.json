@@ -1,0 +1,16 @@
+{
+    "name": "Facebook Ads",
+    "settings": {
+        "param_map": [
+            { "alias": "sub1", "token": "sub_id_1", "macro": "{{campaign.id}}" },
+            { "alias": "sub2", "token": "sub_id_2", "macro": "{{adset.id}}" },
+            { "alias": "sub3", "token": "sub_id_3", "macro": "{{ad.id}}" },
+            { "alias": "fbclid", "token": "fbclid", "macro": "{{fbclid}}" }
+        ],
+        "cost_param": "cost",
+        "cost_currency": "USD",
+        "postback_url": "",
+        "postback_statuses": ["lead", "sale"],
+        "note": "Facebook uses URL dynamic params (e.g. {{campaign.id}}). Conversions are usually returned via the Conversion API (Phase 3)."
+    }
+}

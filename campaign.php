@@ -245,6 +245,10 @@ class StepSettings implements JsonSerializable
     public int $redirectType;
     public array $weights;
     public array $folderLoadTypes;
+    /** @var int[] Referenced offer ids (resolved to redirect URLs at runtime). */
+    public array $offerIds;
+    /** @var int[] Referenced landing ids (resolved to folders/URLs at runtime). */
+    public array $landingIds;
 
     public static function fromArray($arr): StepSettings
     {
@@ -255,7 +259,15 @@ class StepSettings implements JsonSerializable
         $ss->redirectType = $arr['redirect']['type'] ?? 302;
         $ss->weights = $arr['weights'] ?? [];
         $ss->folderLoadTypes = $arr['folderloadtypes'] ?? [];
+        $ss->offerIds = array_values(array_map('intval', $arr['offers'] ?? []));
+        $ss->landingIds = array_values(array_map('intval', $arr['landings'] ?? []));
         return $ss;
+    }
+
+    /** Whether this step references first-class offers/landings to resolve. */
+    public function hasEntityRefs(): bool
+    {
+        return $this->offerIds !== [] || $this->landingIds !== [];
     }
 
     public function isDirectLoad(string $folderName): bool
@@ -312,7 +324,9 @@ class StepSettings implements JsonSerializable
                 "type" => $this->redirectType
             ],
             "weights" => $this->weights,
-            "folderloadtypes" => $this->folderLoadTypes
+            "folderloadtypes" => $this->folderLoadTypes,
+            "offers" => $this->offerIds,
+            "landings" => $this->landingIds
         ];
     }
 }
