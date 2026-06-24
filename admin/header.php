@@ -114,6 +114,7 @@ $headerDateConfig = [
                                 <a class="nav-link" href="#" onclick="checkForUpdates(); return false;">
                                     <i class="bi bi-cloud-arrow-down"></i>
                                     <span>Update</span>
+                                    <small class="text-muted" style="font-size:0.7em;opacity:0.7">v<?= trim(file_get_contents(__DIR__.'/version.txt')) ?></small>
                                 </a>
                                 <a class="nav-link" href="logout.php">
                                     <i class="bi bi-door-closed"></i>

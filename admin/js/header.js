@@ -280,7 +280,7 @@ async function checkForUpdates() {
                 alert('Update successful! The page will now reload.');
                 location.reload();
             } else {
-                alert('Error updating system: ' + updateResult.error);
+                alert('Error updating system: ' + updateResult.message);
             }
         }
     } catch (error) {
