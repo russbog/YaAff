@@ -50,6 +50,13 @@ export interface BootstrapResponse {
   timezones: TimezoneOption[] | Record<string, string>;
   statFields: StatField[];
   trafficBackUrl: string;
+  geoBases?: GeoBasesInfo;
+}
+
+export interface GeoBasesInfo {
+  version: string;
+  missing: string[];
+  source: string | null;
 }
 
 export interface CommonSettings {

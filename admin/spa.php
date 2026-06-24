@@ -53,6 +53,23 @@ function spa_body(): array
     return is_array($decoded) ? $decoded : $_POST;
 }
 
+/** GeoIP database status (version, missing files, source) for the SPA topbar. */
+function spa_geobases(): array
+{
+    $basesDir = __DIR__ . '/../bases';
+    $missing = [];
+    foreach (['GeoLite2-Country.mmdb', 'GeoLite2-ASN.mmdb'] as $file) {
+        if (!is_readable($basesDir . '/' . $file)) {
+            $missing[] = $file;
+        }
+    }
+    $updateFile = $basesDir . '/update.txt';
+    $version = is_readable($updateFile) ? trim((string)file_get_contents($updateFile)) : '';
+    $sourceFile = $basesDir . '/source.txt';
+    $source = is_readable($sourceFile) ? trim((string)file_get_contents($sourceFile)) : null;
+    return ['version' => $version, 'missing' => $missing, 'source' => $source];
+}
+
 /** Stat fields exposed to the campaigns table, with display metadata. */
 function spa_stat_fields(): array
 {
@@ -128,6 +145,7 @@ try {
                 'timezones'    => get_timezone_options(),
                 'statFields'   => spa_stat_fields(),
                 'trafficBackUrl' => $gs['trafficBackUrl'] ?? '',
+                'geoBases'     => spa_geobases(),
             ]);
         }
 

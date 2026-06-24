@@ -24,11 +24,33 @@ export class ApiError extends Error {
 
 type Json = Record<string, unknown>;
 
+// Some legacy PHP endpoints can prepend a warning/notice (e.g. a failed
+// file_get_contents to GitHub, or display_errors=On) before the JSON body,
+// producing responses like `<br /><b>Warning</b>: ...{"success":true}`.
+// Parse the whole body first; on failure, retry from the first `{`/`[` so a
+// leaked warning doesn't surface to the user as "Invalid JSON".
+function parseJsonLoose(text: string): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    const start = text.search(/[[{]/);
+    if (start > 0) {
+      try {
+        return JSON.parse(text.slice(start));
+      } catch {
+        /* fall through */
+      }
+    }
+    throw new SyntaxError('Invalid JSON');
+  }
+}
+
 async function parse<T>(res: Response): Promise<T> {
   const text = await res.text();
   let data: unknown = null;
   try {
-    data = text ? JSON.parse(text) : null;
+    data = parseJsonLoose(text);
   } catch {
     throw new ApiError(`Invalid JSON from server (HTTP ${res.status})`, res.status);
   }
@@ -102,6 +124,59 @@ export const spa = {
     }),
 };
 
+// --- System maintenance (app auto-update / geobase update / timezone) -------
+// autoupdate.php and commonseditor.php speak form-encoded POST and a
+// {success|result|error} envelope rather than the {ok} one; bases/update.php
+// lives outside admin/ and returns {result, error}.
+
+export interface UpdateCheck {
+  hasUpdate: boolean;
+  version: string;
+  message?: string;
+}
+
+async function autoupdate(action: 'check' | 'update'): Promise<Record<string, unknown>> {
+  const res = await fetch(url('autoupdate.php'), {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+    body: form({ action }),
+  });
+  const text = await res.text();
+  let data: Record<string, unknown>;
+  try {
+    data = (parseJsonLoose(text) ?? {}) as Record<string, unknown>;
+  } catch {
+    throw new ApiError(`Invalid JSON from server (HTTP ${res.status})`, res.status);
+  }
+  if (!res.ok || data.success === false) {
+    throw new ApiError((data.message as string) || `Request failed (HTTP ${res.status})`, res.status);
+  }
+  return data;
+}
+
+export const systemApi = {
+  checkUpdate: async (): Promise<UpdateCheck> => {
+    const d = await autoupdate('check');
+    return { hasUpdate: Boolean(d.hasUpdate), version: String(d.version ?? ''), message: d.message as string | undefined };
+  },
+  applyUpdate: async (): Promise<string> => {
+    const d = await autoupdate('update');
+    return String(d.message ?? 'Update complete');
+  },
+  // bases/update.php is one level above admin/; returns { result, error }.
+  updateGeobases: async (): Promise<string> => {
+    const res = await fetch(url('../bases/update.php'), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+    const data = await fileParse<{ error?: boolean; result?: string }>(res);
+    return data.result ?? 'GeoBases updated';
+  },
+  saveTimezone: (timezone: string) =>
+    filePost<{ error?: boolean; result?: string }>('commonseditor.php?action=savetimezone', form({ timezone })),
+};
+
 // Campaign CRUD reuses the existing campeditor.php transport.
 export const campaignApi = {
   create: (name: string) =>
@@ -137,7 +212,7 @@ async function fileParse<T extends FileEnvelope>(res: Response): Promise<T> {
   const text = await res.text();
   let data: FileEnvelope;
   try {
-    data = (text ? JSON.parse(text) : {}) as FileEnvelope;
+    data = (parseJsonLoose(text) ?? {}) as FileEnvelope;
   } catch {
     throw new ApiError(`Invalid JSON from server (HTTP ${res.status})`, res.status);
   }
