@@ -12,6 +12,9 @@
 bases/update.txt
 bases/*.mmdb
 bases/test.txt
+bases/blacklists/*.ip
+bases/blacklists/*.ua
+!bases/blacklists/builtin.ua
 agents.md
 migrate_userid_clickid.php
 /vendor
