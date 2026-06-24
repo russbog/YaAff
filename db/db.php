@@ -5,6 +5,7 @@ require_once __DIR__ . "/../logging.php";
 require_once __DIR__ . "/../settings.php";
 require_once __DIR__ . "/../paths.php";
 require_once __DIR__ . "/drivers/SqliteDriver.php";
+require_once __DIR__ . "/Migrator.php";
 
 class Db
 {
@@ -15,6 +16,7 @@ class Db
         if ($driver !== null) {
             $this->driver = $driver;
             $this->ensure_schema_migrations();
+            $this->run_migrations();
             return;
         }
 
@@ -27,6 +29,20 @@ class Db
                 die("Couldn't create the SQLite database! Read logs for additional info.");
         }
         $this->ensure_schema_migrations();
+        $this->run_migrations();
+    }
+
+    /**
+     * Apply any pending versioned migrations (Phase 1+ entity tables, etc.).
+     * Non-fatal: a migration failure is logged but never blocks tracker boot.
+     */
+    private function run_migrations(): void
+    {
+        try {
+            (new Migrator($this->driver))->migrate();
+        } catch (Throwable $e) {
+            add_log("errors", "Migration run failed: " . $e->getMessage());
+        }
     }
 
     /** The database driver currently in use (SQLite by default). */

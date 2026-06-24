@@ -9,6 +9,8 @@ require_once __DIR__ . '/redirect.php';
 require_once __DIR__ . '/abtest.php';
 require_once __DIR__ . '/requestfunc.php';
 require_once __DIR__ . '/actions.php';
+require_once __DIR__ . '/entities/Repositories.php';
+require_once __DIR__ . '/entities/FlowEntityResolver.php';
 
 function traficback(array $clickParams): CloakerAction
 {
@@ -125,6 +127,12 @@ function black(Campaign $c, int $flowIndex, array $clickparams): CloakerAction
 
     if (empty($steps)) {
         return new CloakerAction('black', 'die', "No steps defined in flow: " . $flow->name);
+    }
+
+    $offersRepo = Repositories::offers($db->driver());
+    $landingsRepo = Repositories::landings($db->driver());
+    foreach ($steps as $step) {
+        FlowEntityResolver::expandStep($step, $offersRepo, $landingsRepo);
     }
 
     $abtest = new AbTest($c);

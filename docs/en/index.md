@@ -24,3 +24,4 @@ This is the main product, admin, and runtime documentation for YellowCloaker.
 ## Architecture (fork)
 
 - [Phase 0: DB Abstraction, Entity Layer & Migrations](phase-0-db-abstraction.md)
+- [Phase 1: First-class Entities (Networks, Sources, Offers, Landings)](phase-1-entities.md)

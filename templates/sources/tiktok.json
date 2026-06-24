@@ -1,0 +1,16 @@
+{
+    "name": "TikTok Ads",
+    "settings": {
+        "param_map": [
+            { "alias": "sub1", "token": "sub_id_1", "macro": "__CAMPAIGN_ID__" },
+            { "alias": "sub2", "token": "sub_id_2", "macro": "__AID__" },
+            { "alias": "sub3", "token": "sub_id_3", "macro": "__CID__" },
+            { "alias": "ttclid", "token": "ttclid", "macro": "__CLICKID__" }
+        ],
+        "cost_param": "cost",
+        "cost_currency": "USD",
+        "postback_url": "",
+        "postback_statuses": ["lead", "sale"],
+        "note": "TikTok tracking params (e.g. __CAMPAIGN_ID__). Conversions via TikTok Events API (Phase 3)."
+    }
+}

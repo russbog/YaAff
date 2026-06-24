@@ -1,0 +1,14 @@
+{
+    "name": "Everad",
+    "settings": {
+        "currency": "USD",
+        "postback_url": "https://YOUR_TRACKER_DOMAIN/postback.php?subid={subid}&status={status}&payout={payout}",
+        "status_map": {
+            "lead": "lead",
+            "approved": "sale",
+            "trash": "rejected",
+            "hold": "hold"
+        },
+        "note": "Example template for an Everad-style nutra network. Verify status names against your account."
+    }
+}

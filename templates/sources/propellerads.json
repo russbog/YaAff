@@ -1,0 +1,15 @@
+{
+    "name": "PropellerAds",
+    "settings": {
+        "param_map": [
+            { "alias": "sub1", "token": "sub_id_1", "macro": "${CAMPAIGN_ID}" },
+            { "alias": "sub2", "token": "sub_id_2", "macro": "${ZONE_ID}" },
+            { "alias": "subid", "token": "subid", "macro": "${SUBID}" }
+        ],
+        "cost_param": "cost",
+        "cost_currency": "USD",
+        "postback_url": "https://YOUR_SOURCE_POSTBACK?cid=${SUBID}&payout={payout}",
+        "postback_statuses": ["sale"],
+        "note": "PropellerAds macros (e.g. ${CAMPAIGN_ID}). S2S postback returns conversions to the source."
+    }
+}

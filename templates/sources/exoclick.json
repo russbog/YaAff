@@ -1,0 +1,15 @@
+{
+    "name": "ExoClick",
+    "settings": {
+        "param_map": [
+            { "alias": "sub1", "token": "sub_id_1", "macro": "{campaign_id}" },
+            { "alias": "sub2", "token": "sub_id_2", "macro": "{zone_id}" },
+            { "alias": "clickid", "token": "clickid", "macro": "{click_id}" }
+        ],
+        "cost_param": "cost",
+        "cost_currency": "USD",
+        "postback_url": "https://main.exoclick.com/postback?goal={status}&tag={clickid}",
+        "postback_statuses": ["sale"],
+        "note": "ExoClick macros (e.g. {campaign_id}). S2S postback returns conversions to the source."
+    }
+}

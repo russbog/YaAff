@@ -1,0 +1,14 @@
+{
+    "name": "TerraLeads",
+    "settings": {
+        "currency": "USD",
+        "postback_url": "https://YOUR_TRACKER_DOMAIN/postback.php?subid={subid}&status={status}&payout={payout}",
+        "status_map": {
+            "lead": "lead",
+            "confirmed": "sale",
+            "canceled": "rejected",
+            "hold": "hold"
+        },
+        "note": "Example template for a TerraLeads-style network. Verify status names against your account."
+    }
+}
