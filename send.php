@@ -55,39 +55,39 @@ $useUTP = $cloSettings['useUTP'];
 $httpCode = (int)($res["info"]["http_code"] ?? 0);
 
 if ($httpCode >= 300 && $httpCode < 400 && !empty($res["info"]["redirect_url"])) {
-        $db->add_lead($clickid,$_POST);
-        $thankyouData = $_POST;
-        if (!empty($clickid)) {
-            $thankyouData['clickid'] = $clickid;
-            $click = $db->get_click_by_clickid($clickid);
-            if (!empty($click['userid'])) {
-                $thankyouData['userid'] = $click['userid'];
-            }
+    $db->add_lead($clickid,$_POST);
+    $thankyouData = $_POST;
+    if (!empty($clickid)) {
+        $thankyouData['clickid'] = $clickid;
+        $click = $db->get_click_by_clickid($clickid);
+        if (!empty($click['userid'])) {
+            $thankyouData['userid'] = $click['userid'];
         }
-        if ($useUTP) {
-            redirect("/thankyou/index.php?" . http_build_query($thankyouData));
-        } else {
-            redirect($res["info"]["redirect_url"]);
-        }
-        return;
+    }
+    if ($useUTP) {
+        redirect("/thankyou/index.php?" . http_build_query($thankyouData));
+    } else {
+        redirect($res["info"]["redirect_url"]);
+    }
+    return;
 }
 
 if ($httpCode >= 200 && $httpCode < 300) {
-        $db->add_lead($clickid, $_POST);
-        $thankyouData = $_POST;
-        if (!empty($clickid)) {
-            $thankyouData['clickid'] = $clickid;
-            $click = $db->get_click_by_clickid($clickid);
-            if (!empty($click['userid'])) {
-                $thankyouData['userid'] = $click['userid'];
-            }
+    $db->add_lead($clickid, $_POST);
+    $thankyouData = $_POST;
+    if (!empty($clickid)) {
+        $thankyouData['clickid'] = $clickid;
+        $click = $db->get_click_by_clickid($clickid);
+        if (!empty($click['userid'])) {
+            $thankyouData['userid'] = $click['userid'];
         }
-        if ($useUTP) {
-            echo redirect("/thankyou/index.php?" . http_build_query($thankyouData),"js");
-        } else {
-            echo $res["content"];
-        }
-        return;
+    }
+    if ($useUTP) {
+        echo redirect("/thankyou/index.php?" . http_build_query($thankyouData),"js");
+    } else {
+        echo $res["content"];
+    }
+    return;
 }
 
 add_error_log(
