@@ -186,6 +186,18 @@ class SqliteDriver implements DbDriver
         return array_values(array_filter($columns, static fn($c) => $c !== ''));
     }
 
+    public function tables(): array
+    {
+        $names = [];
+        $result = $this->connection(true)->query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+        );
+        while ($row = $result?->fetchArray(SQLITE3_ASSOC)) {
+            $names[] = (string)($row['name'] ?? '');
+        }
+        return array_values(array_filter($names, static fn($n) => $n !== ''));
+    }
+
     public function jsonExtract(string $column, string $key): string
     {
         return "json_extract($column, '$." . $key . "')";

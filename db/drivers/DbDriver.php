@@ -53,6 +53,9 @@ interface DbDriver
     /** Column names of a table (empty array when the table is absent). */
     public function tableColumns(string $table): array;
 
+    /** All user table names in the database (excludes engine internals). */
+    public function tables(): array;
+
     // --- SQL dialect helpers -------------------------------------------------
 
     /** SQL expression extracting a JSON value as text from $column. */
