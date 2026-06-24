@@ -97,14 +97,14 @@ class FiltrationCore
         $phpFileCache = new Doctrine\Common\Cache\PhpFileCache($cacheDir);
         $dd->setCache(new DoctrineBridge($phpFileCache));
         $dd->parse();
-        $clientInfo = $dd->getClient();
-        $a['client'] = $clientInfo['name'];
-        $a['clientver'] = $clientInfo['version'];
+        $clientInfo = $dd->getClient() ?: [];
+        $a['client'] = $clientInfo['name'] ?? 'Unknown';
+        $a['clientver'] = $clientInfo['version'] ?? '';
         DebugMethods::stop("YWBCoreDeviceDetector");
 
-        $osInfo = $dd->getOs();
-        $a['os'] = $osInfo['name'];
-        $a['osver'] = $osInfo['version'];
+        $osInfo = $dd->getOs() ?: [];
+        $a['os'] = $osInfo['name'] ?? 'Unknown';
+        $a['osver'] = $osInfo['version'] ?? '';
         $a['device'] = $dd->getDeviceName();
         $a['brand'] = $dd->getBrandName();
         $a['model'] = $dd->getModel();
