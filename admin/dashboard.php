@@ -39,67 +39,93 @@ $campaigns = $db->get_campaigns_list();
 <!doctype html>
 <html lang="en">
 <?php include __DIR__ . '/head.php' ?>
+<link rel="stylesheet" href="<?= get_cloaker_path() ?>css/dashboard.css?v=<?= filemtime(__DIR__ . '/css/dashboard.css') ?>" />
 <body>
 <?php include __DIR__ . '/header.php' ?>
 <div class="all-content-wrapper">
-    <div class="container-fluid" style="padding-top:20px">
-        <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
-            <div>
-                <label class="form-label mb-0 small">Campaign</label>
-                <select id="dash-camp" class="form-select form-select-sm" style="width:auto">
-                    <option value="0">All campaigns</option>
-                    <?php foreach ($campaigns as $c): ?>
-                        <option value="<?= (int)$c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
+    <div class="dash" id="dash">
+        <div class="dash-head">
+            <div class="dash-title">
+                <h1><i class="bi bi-speedometer2"></i> Dashboard</h1>
+                <span class="dash-sub">Real-time traffic performance overview</span>
             </div>
-            <div>
-                <label class="form-label mb-0 small">Period</label>
-                <select id="dash-range" class="form-select form-select-sm" style="width:auto">
-                    <option value="3600">Last hour</option>
-                    <option value="86400" selected>Last 24h</option>
-                    <option value="604800">Last 7 days</option>
-                    <option value="2592000">Last 30 days</option>
-                </select>
+            <div class="dash-toolbar">
+                <div class="dash-field">
+                    <label for="dash-camp">Campaign</label>
+                    <select id="dash-camp" class="dash-select">
+                        <option value="0">All campaigns</option>
+                        <?php foreach ($campaigns as $c): ?>
+                            <option value="<?= (int)$c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="dash-field">
+                    <label>Period</label>
+                    <div class="dash-segment" id="dash-range" role="group" aria-label="Period">
+                        <button type="button" data-range="3600">1H</button>
+                        <button type="button" data-range="86400" class="active">24H</button>
+                        <button type="button" data-range="604800">7D</button>
+                        <button type="button" data-range="2592000">30D</button>
+                    </div>
+                </div>
+                <div class="dash-field">
+                    <label for="dash-refresh">Auto-refresh</label>
+                    <select id="dash-refresh" class="dash-select">
+                        <option value="0">Off</option>
+                        <option value="10000">10s</option>
+                        <option value="30000" selected>30s</option>
+                        <option value="60000">60s</option>
+                    </select>
+                </div>
+                <button class="dash-btn" id="dash-refresh-now" type="button" title="Refresh now">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+                <span id="dash-updated" class="dash-updated">
+                    <span class="dash-live-dot" id="dash-live"></span><span id="dash-updated-text">Loading…</span>
+                </span>
             </div>
-            <div>
-                <label class="form-label mb-0 small">Auto-refresh</label>
-                <select id="dash-refresh" class="form-select form-select-sm" style="width:auto">
-                    <option value="0">Off</option>
-                    <option value="10000">10s</option>
-                    <option value="30000" selected>30s</option>
-                    <option value="60000">60s</option>
-                </select>
-            </div>
-            <button class="btn btn-sm btn-primary" id="dash-refresh-now">Refresh</button>
-            <span id="dash-updated" class="text-muted small ms-2"></span>
         </div>
 
-        <div id="dash-kpis" class="row g-2 mb-3"></div>
+        <div id="dash-kpis" class="dash-kpis"></div>
 
-        <div class="card mb-3">
-            <div class="card-body">
-                <h6 class="card-title">Clicks &amp; Conversions over time</h6>
-                <canvas id="dash-chart" height="110"></canvas>
+        <div class="dash-grid">
+            <div class="dash-card dash-chart-card">
+                <div class="dash-card-head">
+                    <h6><i class="bi bi-graph-up"></i> Clicks &amp; Conversions</h6>
+                    <div class="dash-legend">
+                        <span><i style="background:#3b9cff"></i> Clicks</span>
+                        <span><i style="background:#2ecc8f"></i> Conversions</span>
+                    </div>
+                </div>
+                <div class="dash-chart-wrap">
+                    <canvas id="dash-chart" height="260"></canvas>
+                    <div class="dash-tooltip" id="dash-chart-tip"></div>
+                </div>
+            </div>
+            <div class="dash-card">
+                <div class="dash-card-head">
+                    <h6><i class="bi bi-shield-check"></i> Traffic quality</h6>
+                </div>
+                <div class="dash-quality" id="dash-quality"></div>
             </div>
         </div>
 
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="card"><div class="card-body">
-                    <h6 class="card-title">Top countries</h6>
-                    <div id="dash-top-country"></div>
-                </div></div>
+        <div class="dash-grid-2">
+            <div class="dash-card">
+                <div class="dash-card-head">
+                    <h6><i class="bi bi-globe-americas"></i> Top countries</h6>
+                </div>
+                <div id="dash-top-country"></div>
             </div>
-            <div class="col-md-6">
-                <div class="card"><div class="card-body">
-                    <h6 class="card-title">Top flows</h6>
-                    <div id="dash-top-flow"></div>
-                </div></div>
+            <div class="dash-card">
+                <div class="dash-card-head">
+                    <h6><i class="bi bi-diagram-3"></i> Top flows</h6>
+                </div>
+                <div id="dash-top-flow"></div>
             </div>
         </div>
     </div>
 </div>
-<script src="js/dashboard.js"></script>
+<script src="js/dashboard.js?v=<?= filemtime(__DIR__ . '/js/dashboard.js') ?>"></script>
 </body>
 </html>
