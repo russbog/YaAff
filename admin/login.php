@@ -30,8 +30,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Yellow Cloaker Login</title>
-    <link rel="icon" type="image/png" href="img/favicon.png">
+    <title>YaAff Login</title>
+    <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
     <link rel="stylesheet" type="text/css" href="css/login.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -227,15 +227,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <?php $cloPath = get_cloaker_path(); ?>
 <body>
-    <canvas id="matrix-rain"></canvas>
-    <div class="grid-overlay"></div>
     <div id="main">
-        <div id="title">
-            <img src="<?= $cloPath ?>img/logobig.png" alt="Yellow Cloaker Logo" />
+        <div id="title" class="yaaff-login-brand">
+            <div class="yaaff-login-mark" aria-hidden="true">Y</div>
+            <div>
+                <div class="yaaff-login-name">YaAff</div>
+                <div class="yaaff-login-subtitle">Affiliate traffic intelligence</div>
+            </div>
         </div>
         <div class="login-container">
             <form id="login-form">
-                <h2>Welcome Back</h2>
+                <h2>Welcome back</h2>
                 <?php if ($multiuser): ?>
                 <div class="input-group">
                     <label for="username">Username</label>
@@ -253,7 +255,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
                 <button type="submit" class="login-button">
                     <img src="<?= $cloPath ?>img/loading.apng" class="loading-img" alt="Loading..." />
-                    <span>Login to Dashboard</span>
+                    <span>Open dashboard</span>
                 </button>
             </form>
             <div class="version-info">

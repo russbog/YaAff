@@ -26,3 +26,5 @@ $cssPath = get_cloaker_path().'css';
 
     <!--JQuery Modal-->
     <link rel="stylesheet" href="<?=$cssPath?>/jquery.modal.min.css">
+    <!-- YaAff modern UI overrides -->
+    <link rel="stylesheet" href="<?=$cssPath?>/yaaff-modern.css?v=<?= filemtime($cssFsPath.'/yaaff-modern.css') ?>" />

@@ -67,8 +67,12 @@ $headerDateConfig = [
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
                     <div class="logo-pro">
                         <div class="logo-container">
-                            <a href="index.php?startdate=<?=$calDs[0]?>&enddate=<?=$calDs[1]?>" class="logo-link">
-                                <img class="main-logo" src="<?=get_cloaker_path()?>img/logo.png" alt="" />
+                            <a href="index.php?startdate=<?=$calDs[0]?>&enddate=<?=$calDs[1]?>" class="logo-link yaaff-brand" aria-label="YaAff dashboard">
+                                <span class="yaaff-brand-mark" aria-hidden="true">Y</span>
+                                <span class="yaaff-brand-copy">
+                                    <strong>YaAff</strong>
+                                    <small>Affiliate traffic command center</small>
+                                </span>
                             </a>
                             <div class="geo-version">
                                 <?php 
@@ -79,7 +83,7 @@ $headerDateConfig = [
                                 GeoBases: <a href="#" id="updateBases" title="Update bases" class="<?=$basesClass?>"><?=$basesEncoded?></a>
                                 <img style="width:30px; height:30px;display:none;" src="<?=get_cloaker_path()?>img/loading.apng" id="loadingAnimation" />
                                 <?php if (DebugMethods::on()): ?>
-                                <span style="color: red; margin-left: 10px;">Debug Mode</span>
+                                <span class="yaaff-debug-badge">Debug Mode</span>
                                 <?php endif; ?>
                             </div>
                         </div>
