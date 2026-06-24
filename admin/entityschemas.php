@@ -127,6 +127,24 @@ function entity_schemas(): array
                 ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
             ],
         ],
+        'domains' => [
+            'title' => 'Domains',
+            'singular' => 'Domain',
+            'icon' => 'bi-globe2',
+            'fields' => [
+                ['key' => 'name', 'label' => 'Hostname', 'type' => 'text', 'required' => true, 'help' => 'No scheme. Use *.example.com to match all subdomains.'],
+                ['key' => 'group', 'label' => 'Group', 'type' => 'text'],
+                ['key' => 'type', 'label' => 'Type', 'type' => 'select', 'options' => ['regular' => 'Regular', 'wildcard' => 'Wildcard', 'alias' => 'Alias'], 'default' => 'regular'],
+                ['key' => 'alias_of', 'label' => 'Alias of', 'type' => 'text', 'help' => 'Canonical host this alias resolves to (alias type only).'],
+                ['key' => 'campaign_id', 'label' => 'Reserved for campaign', 'type' => 'number', 'help' => 'Optional campaign id this domain is reserved for.'],
+                ['key' => 'dns_type', 'label' => 'DNS record type', 'type' => 'select', 'options' => ['A' => 'A', 'CNAME' => 'CNAME', 'AAAA' => 'AAAA', 'TXT' => 'TXT'], 'default' => 'A'],
+                ['key' => 'dns_content', 'label' => 'DNS record value', 'type' => 'text', 'help' => 'IP for A/AAAA, target host for CNAME.'],
+                ['key' => 'dns_proxied', 'label' => 'Cloudflare proxied (orange cloud)', 'type' => 'checkbox', 'default' => false],
+                ['key' => 'cf_zone_id', 'label' => 'Cloudflare zone id', 'type' => 'text', 'help' => 'Used to create the DNS record via the Cloudflare API.'],
+                ['key' => 'cf_api_token', 'label' => 'Cloudflare API token', 'type' => 'text', 'help' => 'Scoped token (Zone:DNS:Edit). Stored per domain; never logged.'],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+            ],
+        ],
     ];
 
     return $schemas;

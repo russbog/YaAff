@@ -28,6 +28,7 @@
 - [Фаза 2: Режимы трекинга, расширенные фильтры и типы потоков](phase-2-routing-filters-flows.md)
 - [Фаза 3: Конверсии и Conversion API](phase-3-conversions-api.md)
 - [Фаза 4: Единая токен-система (TokenRegistry)](phase-4-token-system.md)
+- [Фаза 5: Домены + Cloudflare + пул доменов](phase-5-domains.md)
 
 ## С чего начать
 
