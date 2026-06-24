@@ -420,7 +420,7 @@ maybe_download_maxmind_databases() {
     if [ -z "$license_key" ]; then
         echo -e "${YELLOW}WARNING: MaxMind databases were not downloaded.${NC}"
         echo -e "${YELLOW}Upload GeoLite2-Country.mmdb and GeoLite2-ASN.mmdb to: ${app_dir}/bases/${NC}"
-        echo -e "${YELLOW}GeoIP filters will fail until these files exist.${NC}"
+        echo -e "${YELLOW}GeoIP fields will be saved as Unknown until these files exist; traffic routing will continue.${NC}"
         return 0
     fi
 

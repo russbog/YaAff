@@ -71,21 +71,29 @@ function getcountry(string $ip): string
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
 
-    if (use_maxminddb_extension()) {
-        $record = read_maxminddb_record('GeoLite2-Country.mmdb', $ip);
-        if ($record === null) {
-            add_log("bases", "GetCountry AddressNotFoundException: $ip");
-            return 'Unknown';
-        }
-        return (string)($record['country']['iso_code'] ?? 'Unknown');
+    if (!geoip_db_available('GeoLite2-Country.mmdb')) {
+        add_log("bases", "GeoLite2-Country.mmdb unavailable; country=Unknown for $ip");
+        return 'Unknown';
     }
 
-    $reader = open_geoip_reader('GeoLite2-Country.mmdb');
     try {
+        if (use_maxminddb_extension()) {
+            $record = read_maxminddb_record('GeoLite2-Country.mmdb', $ip);
+            if ($record === null) {
+                add_log("bases", "GetCountry AddressNotFoundException: $ip");
+                return 'Unknown';
+            }
+            return (string)($record['country']['iso_code'] ?? 'Unknown');
+        }
+
+        $reader = open_geoip_reader('GeoLite2-Country.mmdb');
         $record = $reader->country($ip);
         return $record->country->isoCode;
     } catch (ANFException $exception) {
         add_log("bases", "GetCountry AddressNotFoundException: $ip");
+        return 'Unknown';
+    } catch (Throwable $exception) {
+        add_log("bases", "GetCountry error: $ip - " . $exception->getMessage());
         return 'Unknown';
     }
 }
@@ -169,21 +177,29 @@ function getisp(string $ip)
     if ($ip === '::1' || $ip === '127.0.0.1')
         $ip = '31.177.76.70'; //for debugging
 
-    if (use_maxminddb_extension()) {
-        $record = read_maxminddb_record('GeoLite2-ASN.mmdb', $ip);
-        if ($record === null) {
-            add_log("bases", "GetISP AddressNotFoundException: $ip");
-            return 'Unknown';
-        }
-        return $record['autonomous_system_organization'] ?? 'Unknown';
+    if (!geoip_db_available('GeoLite2-ASN.mmdb')) {
+        add_log("bases", "GeoLite2-ASN.mmdb unavailable; isp=Unknown for $ip");
+        return 'Unknown';
     }
 
-    $reader = open_geoip_reader('GeoLite2-ASN.mmdb');
     try {
+        if (use_maxminddb_extension()) {
+            $record = read_maxminddb_record('GeoLite2-ASN.mmdb', $ip);
+            if ($record === null) {
+                add_log("bases", "GetISP AddressNotFoundException: $ip");
+                return 'Unknown';
+            }
+            return $record['autonomous_system_organization'] ?? 'Unknown';
+        }
+
+        $reader = open_geoip_reader('GeoLite2-ASN.mmdb');
         $record = $reader->asn($ip);
         return $record->autonomousSystemOrganization;
     } catch (ANFException $exception) {
         add_log("bases", "GetISP AddressNotFoundException: $ip");
+        return 'Unknown';
+    } catch (Throwable $exception) {
+        add_log("bases", "GetISP error: $ip - " . $exception->getMessage());
         return 'Unknown';
     }
 }

@@ -28,6 +28,12 @@ class InstallerScriptTest extends TestCase
         $this->assertStringContainsString('extension_loaded("maxminddb")', $this->script);
     }
 
+    public function testInstallerKeepsRuntimeWorkingWithoutMaxMindKey(): void
+    {
+        $this->assertStringContainsString('MaxMind databases were not downloaded', $this->script);
+        $this->assertStringContainsString('GeoIP fields will be saved as Unknown until these files exist; traffic routing will continue.', $this->script);
+    }
+
     public function testGeoIpReaderAvoidsPharWhenMaxMindExtensionIsLoaded(): void
     {
         $source = (string) file_get_contents(__DIR__ . '/../bases/ipcountry.php');
