@@ -1,0 +1,14 @@
+{
+    "name": "Facebook Conversions API (CAPI)",
+    "settings": {
+        "type": "fb_capi",
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/YOUR_PIXEL_ID/events?access_token=YOUR_ACCESS_TOKEN",
+        "content_type": "application/json",
+        "headers": {},
+        "body": "{\"data\":[{\"event_name\":\"{status}\",\"event_time\":{time},\"action_source\":\"website\",\"event_id\":\"{clickid}\",\"user_data\":{\"client_ip_address\":\"{ip}\",\"client_user_agent\":\"{ua}\",\"fbc\":\"{c.fbc}\",\"fbp\":\"{c.fbp}\"},\"custom_data\":{\"value\":{payout},\"currency\":\"{currency}\"}}]}",
+        "statuses": ["Purchase", "Lead"],
+        "enabled": true,
+        "note": "Set YOUR_PIXEL_ID and YOUR_ACCESS_TOKEN. fbc/fbp are read from click params {c.fbc}/{c.fbp}; pass them from the landing. event_name should match a standard FB event (Lead, Purchase)."
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "name": "Google Ads (Measurement Protocol / GA4)",
+    "settings": {
+        "type": "google",
+        "method": "POST",
+        "url": "https://www.google-analytics.com/mp/collect?measurement_id=YOUR_MEASUREMENT_ID&api_secret=YOUR_API_SECRET",
+        "content_type": "application/json",
+        "headers": {},
+        "body": "{\"client_id\":\"{clickid}\",\"events\":[{\"name\":\"conversion\",\"params\":{\"event_label\":\"{status}\",\"value\":{payout},\"currency\":\"{currency}\"}}]}",
+        "statuses": ["Purchase", "Lead"],
+        "enabled": true,
+        "note": "Set YOUR_MEASUREMENT_ID and YOUR_API_SECRET (GA4 Measurement Protocol). For Google Ads offline conversions use the Click Conversions endpoint with an OAuth token in the Authorization header instead."
+    }
+}

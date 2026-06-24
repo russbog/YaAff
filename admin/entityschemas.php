@@ -109,6 +109,24 @@ function entity_schemas(): array
                 ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
             ],
         ],
+        'integrations' => [
+            'title' => 'Conversion APIs',
+            'singular' => 'Integration',
+            'icon' => 'bi-cloud-upload',
+            'fields' => [
+                ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
+                ['key' => 'group', 'label' => 'Group', 'type' => 'text'],
+                ['key' => 'type', 'label' => 'Preset type', 'type' => 'select', 'options' => ['generic' => 'Generic HTTP', 'fb_capi' => 'Facebook CAPI', 'google' => 'Google / GA4', 'tiktok' => 'TikTok'], 'default' => 'generic'],
+                ['key' => 'enabled', 'label' => 'Enabled', 'type' => 'checkbox', 'default' => true],
+                ['key' => 'method', 'label' => 'HTTP method', 'type' => 'select', 'options' => ['POST' => 'POST', 'GET' => 'GET'], 'default' => 'POST'],
+                ['key' => 'url', 'label' => 'Endpoint URL', 'type' => 'text', 'help' => 'Tokens allowed: {clickid} {status} {payout} {currency} {time} {ip} {ua} {c.PARAM} {sub_id_N}'],
+                ['key' => 'content_type', 'label' => 'Content-Type', 'type' => 'text', 'default' => 'application/json'],
+                ['key' => 'headers', 'label' => 'Headers', 'type' => 'kvlines', 'help' => 'One per line: Header-Name=value (tokens allowed).'],
+                ['key' => 'body', 'label' => 'Body template', 'type' => 'textarea', 'help' => 'Raw request body with {token} placeholders (JSON or form-encoded).'],
+                ['key' => 'statuses', 'label' => 'Fire on statuses', 'type' => 'csv', 'help' => 'Comma-separated internal statuses, e.g. Lead,Purchase. Empty = all.'],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+            ],
+        ],
     ];
 
     return $schemas;

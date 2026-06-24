@@ -614,13 +614,17 @@ class PostbackSettings implements JsonSerializable
     public string $purchaseStatusName;
     public string $rejectStatusName;
     public string $trashStatusName;
+    /** Dedup strategy: clickid | tid | clickid_tid (default clickid_tid). */
+    public string $dedupKey = 'clickid_tid';
+    /** Conversion-API integration ids fired on conversion. @var int[] */
+    public array $integrationIds = [];
 
     public static function fromArray($arr): PostbackSettings
     {
         $ps = new PostbackSettings();
 
         $ps->s2sPostbacks = [];
-        foreach ($arr['s2s'] as $s2s) {
+        foreach (($arr['s2s'] ?? []) as $s2s) {
             $ps->s2sPostbacks[] = S2sPostback::fromArray($s2s);
         }
 
@@ -628,6 +632,10 @@ class PostbackSettings implements JsonSerializable
         $ps->purchaseStatusName = $arr['events']['purchase'];
         $ps->rejectStatusName = $arr['events']['reject'];
         $ps->trashStatusName = $arr['events']['trash'];
+
+        $dedup = (string)($arr['dedup_key'] ?? 'clickid_tid');
+        $ps->dedupKey = in_array($dedup, ['clickid', 'tid', 'clickid_tid'], true) ? $dedup : 'clickid_tid';
+        $ps->integrationIds = array_values(array_filter(array_map('intval', (array)($arr['integrations'] ?? []))));
         return $ps;
     }
 
@@ -641,9 +649,23 @@ class PostbackSettings implements JsonSerializable
                     "reject" => $this->rejectStatusName,
                     "trash" => $this->trashStatusName
                 ],
-                "s2s" => $this->s2sPostbacks
+                "s2s" => $this->s2sPostbacks,
+                "dedup_key" => $this->dedupKey,
+                "integrations" => $this->integrationIds
             ]
         ];
+    }
+
+    /**
+     * Build the dedup key value for a conversion from this campaign's strategy.
+     */
+    public function buildDedupKey(string $clickid, string $tid): string
+    {
+        return match ($this->dedupKey) {
+            'tid' => $tid,
+            'clickid' => $clickid,
+            default => $clickid . '|' . $tid,
+        };
     }
 }
 

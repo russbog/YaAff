@@ -901,6 +901,91 @@ class Db
         return $this->exec_update_query($updateQuery, [$status => DbDriver::TEXT, $payout => DbDriver::FLOAT, $clickid => DbDriver::TEXT]);
     }
 
+    /**
+     * Record a conversion in the dedicated conversions table (multiple per
+     * click allowed). Returns the new row id, or 0 on failure.
+     *
+     * @param array<string,mixed> $raw original request payload
+     */
+    public function add_conversion(int $campaignId, string $clickid, string $tid, string $status, float $payout, float $revenue, string $currency, string $source, string $dedupKey, array $raw = []): int
+    {
+        $query = "INSERT INTO conversions (campaign_id, clickid, tid, status, payout, revenue, currency, time, source, dedup_key, raw)
+                  VALUES (:cid, :clickid, :tid, :status, :payout, :revenue, :currency, :time, :source, :dedup, :raw)";
+        $params = [
+            ':cid' => [$campaignId, DbDriver::INT],
+            ':clickid' => [$clickid, DbDriver::TEXT],
+            ':tid' => [$tid, DbDriver::TEXT],
+            ':status' => [$status, DbDriver::TEXT],
+            ':payout' => [$payout, DbDriver::FLOAT],
+            ':revenue' => [$revenue, DbDriver::FLOAT],
+            ':currency' => [$currency, DbDriver::TEXT],
+            ':time' => [time(), DbDriver::INT],
+            ':source' => [$source, DbDriver::TEXT],
+            ':dedup' => [$dedupKey, DbDriver::TEXT],
+            ':raw' => [json_encode($raw === [] ? new stdClass() : $raw), DbDriver::TEXT],
+        ];
+        $id = $this->exec_write_query($query, $params, true);
+        return is_int($id) ? $id : 0;
+    }
+
+    /** True if a conversion with this dedup key already exists for the campaign. */
+    public function conversion_exists(int $campaignId, string $dedupKey): bool
+    {
+        if ($dedupKey === '') {
+            return false;
+        }
+        $rows = $this->exec_read_query(
+            "SELECT 1 AS x FROM conversions WHERE campaign_id = :cid AND dedup_key = :dedup LIMIT 1",
+            [':cid' => [$campaignId, DbDriver::INT], ':dedup' => [$dedupKey, DbDriver::TEXT]]
+        );
+        return !empty($rows);
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    public function get_conversions(int $startdate, int $enddate, int $campId = 0, int $limit = 500): array
+    {
+        $query = "SELECT * FROM conversions WHERE time >= :start AND time <= :end";
+        $params = [':start' => [$startdate, DbDriver::INT], ':end' => [$enddate, DbDriver::INT]];
+        if ($campId > 0) {
+            $query .= " AND campaign_id = :cid";
+            $params[':cid'] = [$campId, DbDriver::INT];
+        }
+        $query .= " ORDER BY time DESC LIMIT " . (int)$limit;
+        return $this->exec_read_query($query, $params);
+    }
+
+    /** Append a row to the postback audit log. Never blocks the caller. */
+    public function log_postback(string $direction, string $clickid, string $status, float $payout, string $currency, string $target, int $httpCode, string $message): bool
+    {
+        $query = "INSERT INTO postback_log (time, direction, clickid, status, payout, currency, target, http_code, message)
+                  VALUES (:time, :dir, :clickid, :status, :payout, :currency, :target, :code, :msg)";
+        $params = [
+            ':time' => [time(), DbDriver::INT],
+            ':dir' => [$direction, DbDriver::TEXT],
+            ':clickid' => [$clickid, DbDriver::TEXT],
+            ':status' => [$status, DbDriver::TEXT],
+            ':payout' => [$payout, DbDriver::FLOAT],
+            ':currency' => [$currency, DbDriver::TEXT],
+            ':target' => [$target, DbDriver::TEXT],
+            ':code' => [$httpCode, DbDriver::INT],
+            ':msg' => [$message, DbDriver::TEXT],
+        ];
+        return (bool)$this->exec_write_query($query, $params);
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    public function get_postback_log(int $limit = 200, string $direction = ''): array
+    {
+        $query = "SELECT * FROM postback_log";
+        $params = [];
+        if ($direction !== '') {
+            $query .= " WHERE direction = :dir";
+            $params[':dir'] = [$direction, DbDriver::TEXT];
+        }
+        $query .= " ORDER BY time DESC LIMIT " . (int)$limit;
+        return $this->exec_read_query($query, $params);
+    }
+
     public function update_click_params(int $clickId, array $params): bool
     {
         if (empty($clickId)) {
