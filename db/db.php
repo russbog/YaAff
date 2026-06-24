@@ -330,6 +330,22 @@ class Db
         return $clicks[0] ?? [];
     }
 
+    public function count_clicks(int $campId, string $flow = '', int $sinceTs = 0): int
+    {
+        $query = "SELECT COUNT(*) AS c FROM clicks WHERE campaign_id = :cid";
+        $params = [':cid' => [$campId, DbDriver::INT]];
+        if ($flow !== '') {
+            $query .= " AND flow = :flow";
+            $params[':flow'] = [$flow, DbDriver::TEXT];
+        }
+        if ($sinceTs > 0) {
+            $query .= " AND time >= :ts";
+            $params[':ts'] = [$sinceTs, DbDriver::INT];
+        }
+        $rows = $this->exec_read_query($query, $params);
+        return (int)($rows[0]['c'] ?? 0);
+    }
+
     public function get_leads($startdate, $enddate, $campId): array
     {
         // Prepare SQL query to select leads within the date range and configuration

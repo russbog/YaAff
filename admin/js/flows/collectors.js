@@ -33,7 +33,7 @@ function collectStepData(stepSec) {
             }
         });
         var rtSel = stepSec.querySelector('select.flow-step-redirect-type');
-        if (rtSel) redirectType = parseInt(rtSel.value);
+        if (rtSel) redirectType = /^\d+$/.test(rtSel.value) ? parseInt(rtSel.value, 10) : rtSel.value;
     }
 
     return {
@@ -82,6 +82,14 @@ export function collectFlowsData() {
         var filters = {};
         try { filters = fb.queryBuilder('getRules') || {}; } catch (e) {}
 
+        var flowType = 'regular';
+        var ftSel = sec.querySelector('.flow-type');
+        if (ftSel) flowType = ftSel.value;
+
+        var flowWeight = 100;
+        var fwInp = sec.querySelector('.flow-weight');
+        if (fwInp) flowWeight = parseInt(fwInp.value, 10) || 0;
+
         var dist = collectDistributionData(sec);
 
         // Collect steps from separate step sections
@@ -92,6 +100,8 @@ export function collectFlowsData() {
 
         flows.push({
             name: name,
+            type: flowType,
+            weight: flowWeight,
             filters: filters,
             distribution: dist.distribution,
             optimize_for: dist.optimize_for,

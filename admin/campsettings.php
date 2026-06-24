@@ -436,6 +436,21 @@ global $c, $db, $campId;
             </div>
 
             <div class="flow-group">
+            <span class="flow-group-title">Flow type</span>
+            <div class="form-group-inner">
+                <select class="form-select flow-type" data-fi="<?= $fi ?>">
+                    <option value="regular" <?= ($flow->type ?? 'regular') === 'regular' ? 'selected' : '' ?>>Regular (weighted split)</option>
+                    <option value="forced" <?= ($flow->type ?? 'regular') === 'forced' ? 'selected' : '' ?>>Forced (checked first)</option>
+                    <option value="default" <?= ($flow->type ?? 'regular') === 'default' ? 'selected' : '' ?>>Default (fallback)</option>
+                </select>
+            </div>
+            <div class="form-group-inner">
+                <label class="login2 pull-left pull-left-pro">Flow weight:</label>
+                <input type="number" min="0" class="form-control flow-weight" data-fi="<?= $fi ?>" value="<?= (int)($flow->weight ?? 100) ?>" style="width:120px" />
+            </div>
+            </div>
+
+            <div class="flow-group">
             <span class="flow-group-title">Distribution</span>
             <div class="form-group-inner">
                 <select class="form-select flow-dist" data-fi="<?= $fi ?>">
@@ -626,8 +641,18 @@ global $c, $db, $campId;
                         <div class="col-lg-3"><label class="login2 pull-left pull-left-pro">Redirect type:</label></div>
                         <div class="col-lg-3">
                             <select class="form-select flow-step-redirect-type" data-fi="<?= $fi ?>" data-si="<?= $si ?>">
-                                <?php foreach ([301,302,303,307] as $rt) { ?>
-                                <option value="<?= $rt ?>" <?= $step->redirectType === $rt ? 'selected' : '' ?>><?= $rt ?></option>
+                                <?php
+                                $stepRtModes = [
+                                    301 => 'HTTP 301', 302 => 'HTTP 302', 303 => 'HTTP 303', 307 => 'HTTP 307',
+                                    'http_404' => 'HTTP 404 (not found)',
+                                    'js' => 'JS redirect', 'meta' => 'Meta refresh',
+                                    'double_meta' => 'Double meta (drop referrer)', 'blank_referrer' => 'Blank referrer',
+                                    'formsubmit' => 'Form submit (POST)', 'iframe' => 'iframe',
+                                    'curl' => 'cURL proxy', 'remote' => 'Remote reverse-proxy',
+                                    'inline' => 'Inline content', 'custom_json' => 'Custom JSON',
+                                ];
+                                foreach ($stepRtModes as $rt => $rtLabel) { ?>
+                                <option value="<?= $rt ?>" <?= $step->redirectType === $rt ? 'selected' : '' ?>><?= $rtLabel ?></option>
                                 <?php } ?>
                             </select>
                         </div>
@@ -1533,6 +1558,14 @@ global $c, $db, $campId;
         <div class="form-group-inner">
             <div class="row"><div id="flow-filters-__FI__"></div></div>
         </div></div>
+
+        <div class="flow-group"><span class="flow-group-title">Flow type</span>
+        <div class="form-group-inner">
+            <select class="form-select flow-type" data-fi="__FI__">
+                <option value="regular" selected>Regular (weighted split)</option><option value="forced">Forced (checked first)</option><option value="default">Default (fallback)</option></select></div>
+        <div class="form-group-inner"><label class="login2 pull-left pull-left-pro">Flow weight:</label>
+            <input type="number" min="0" class="form-control flow-weight" data-fi="__FI__" value="100" style="width:120px" /></div>
+        </div>
 
         <div class="flow-group"><span class="flow-group-title">Distribution</span>
         <div class="form-group-inner">

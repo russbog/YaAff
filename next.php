@@ -83,7 +83,7 @@ if ($stepSettings->isRedirect()) {
     $url = $stepSettings->getRedirectUrlByLabel($chosenVariant);
     $mp = new MacrosProcessor($c, null, $clickid, $click['userid'] ?? null);
     $url = $mp->replace_url_macros($url);
-    redirect($url, $stepSettings->redirectType, false);
+    echo redirect($url, $stepSettings->redirectType, false);
     return;
 }
 

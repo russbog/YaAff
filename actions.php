@@ -5,14 +5,16 @@ class CloakerAction
     public string $click_type;
     public string $action;
     public string $value;
-    public int $redirect_type;
-    
-    public function __construct(string $click_type, string $action, string $value, int $redirect_type=0)
+    public int|string $redirect_type;
+    public string $contentType;
+
+    public function __construct(string $click_type, string $action, string $value, int|string $redirect_type=0, string $contentType='')
     {
         $this->click_type = $click_type;
         $this->action = $action;
         $this->value = $value;
         $this->redirect_type = $redirect_type;
+        $this->contentType = $contentType;
     }
 
     public function perform(){
@@ -20,8 +22,14 @@ class CloakerAction
             case 'html':
                 echo $this->value;
                 break;
+            case 'content':
+                if ($this->contentType !== '') {
+                    header('Content-Type: ' . $this->contentType);
+                }
+                echo $this->value;
+                break;
             case 'redirect':
-                redirect($this->value,$this->redirect_type,true);
+                echo redirect($this->value,$this->redirect_type,true);
                 break;
             case 'error':
                 http_response_code($this->value);
@@ -36,7 +44,7 @@ class JsAction extends CloakerAction
 {
     public static function FromCloakerAction(CloakerAction $action):JsAction
     {
-        return new JsAction($action->click_type, $action->action, $action->value, $action->redirect_type);
+        return new JsAction($action->click_type, $action->action, $action->value, $action->redirect_type, $action->contentType);
     }
 
     private function content_replace():string
@@ -102,7 +110,7 @@ class PhpAction extends CloakerAction
 {
     public static function FromCloakerAction(CloakerAction $action):PhpAction
     {
-        return new PhpAction($action->click_type, $action->action, $action->value, $action->redirect_type);
+        return new PhpAction($action->click_type, $action->action, $action->value, $action->redirect_type, $action->contentType);
     }
     
     public function perform(){

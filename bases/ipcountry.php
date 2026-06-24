@@ -90,6 +90,79 @@ function getcountry(string $ip): string
     }
 }
 
+function geoip_db_available(string $fileName): bool
+{
+    return is_readable(__DIR__ . '/' . $fileName);
+}
+
+/**
+ * Most-specific subdivision (region/state) ISO code from the GeoLite2 City DB.
+ * Returns '' when the City DB is not installed or the address is not found,
+ * so region filtering degrades gracefully instead of throwing.
+ */
+function getregion(string $ip): string
+{
+    if ($ip === 'Unknown') return '';
+    if ($ip === '::1' || $ip === '127.0.0.1') $ip = '31.177.76.70';
+    if (!geoip_db_available('GeoLite2-City.mmdb')) return '';
+
+    try {
+        if (use_maxminddb_extension()) {
+            $record = read_maxminddb_record('GeoLite2-City.mmdb', $ip);
+            $subs = $record['subdivisions'] ?? [];
+            $last = is_array($subs) && !empty($subs) ? end($subs) : null;
+            return (string)($last['iso_code'] ?? '');
+        }
+        $reader = open_geoip_reader('GeoLite2-City.mmdb');
+        $record = $reader->city($ip);
+        return (string)($record->mostSpecificSubdivision->isoCode ?? '');
+    } catch (Throwable $exception) {
+        add_log("bases", "GetRegion error: $ip");
+        return '';
+    }
+}
+
+/** City name from the GeoLite2 City DB; '' when unavailable. */
+function getcity(string $ip): string
+{
+    if ($ip === 'Unknown') return '';
+    if ($ip === '::1' || $ip === '127.0.0.1') $ip = '31.177.76.70';
+    if (!geoip_db_available('GeoLite2-City.mmdb')) return '';
+
+    try {
+        if (use_maxminddb_extension()) {
+            $record = read_maxminddb_record('GeoLite2-City.mmdb', $ip);
+            return (string)($record['city']['names']['en'] ?? '');
+        }
+        $reader = open_geoip_reader('GeoLite2-City.mmdb');
+        $record = $reader->city($ip);
+        return (string)($record->city->name ?? '');
+    } catch (Throwable $exception) {
+        add_log("bases", "GetCity error: $ip");
+        return '';
+    }
+}
+
+/** Connection type from the GeoIP2 Connection-Type/ISP DB; '' when unavailable. */
+function getconnectiontype(string $ip): string
+{
+    if ($ip === 'Unknown') return '';
+    if ($ip === '::1' || $ip === '127.0.0.1') $ip = '31.177.76.70';
+    foreach (['GeoIP2-Connection-Type.mmdb', 'GeoIP2-ISP.mmdb'] as $dbName) {
+        if (!geoip_db_available($dbName)) continue;
+        try {
+            if (use_maxminddb_extension()) {
+                $record = read_maxminddb_record($dbName, $ip);
+                $ct = $record['connection_type'] ?? '';
+                if ($ct !== '') return (string)$ct;
+            }
+        } catch (Throwable $exception) {
+            add_log("bases", "GetConnectionType error: $ip");
+        }
+    }
+    return '';
+}
+
 function getisp(string $ip)
 {
     if ($ip === 'Unknown') return 'Unknown';

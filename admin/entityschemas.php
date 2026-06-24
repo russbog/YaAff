@@ -26,11 +26,20 @@ function entity_schemas(): array
     }
 
     $redirectTypes = [
-        'http_302' => 'HTTP 302 redirect',
-        'js'       => 'JS redirect',
-        'meta'     => 'Meta refresh',
-        'curl'     => 'cURL proxy (no redirect)',
-        'iframe'   => 'iframe',
+        'http_301'       => 'HTTP 301 redirect',
+        'http_302'       => 'HTTP 302 redirect',
+        'http_307'       => 'HTTP 307 redirect',
+        'http_404'       => 'HTTP 404 (not found)',
+        'js'             => 'JS redirect',
+        'meta'           => 'Meta refresh',
+        'double_meta'    => 'Double meta refresh (drop referrer)',
+        'blank_referrer' => 'Blank referrer redirect',
+        'formsubmit'     => 'Form submit (POST)',
+        'iframe'         => 'iframe',
+        'curl'           => 'cURL proxy (no redirect)',
+        'remote'         => 'Remote reverse-proxy',
+        'inline'         => 'Inline content',
+        'custom_json'    => 'Custom JSON (configurable Content-Type)',
     ];
 
     $schemas = [
