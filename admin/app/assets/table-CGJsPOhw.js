@@ -1,4 +1,4 @@
-import{r as P}from"./query-D7ZDXzyX.js";import{r as ve}from"./vendor-DjfM_x2t.js";/**
+import{r as P}from"./query-D7ZDXzyX.js";import{r as ve}from"./vendor-BqaJT_TR.js";/**
    * table-core
    *
    * Copyright (c) TanStack

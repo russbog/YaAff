@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Search, ChevronLeft, ChevronRight, Table as TableIcon } from 'lucide-react';
@@ -28,10 +29,15 @@ function humanize(key: string): string {
   return key.replace(/^param\./, '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const isView = (v: string | null): v is NonNullable<View> =>
+  v === 'allowed' || v === 'blocked' || v === 'leads' || v === 'trafficback';
+
 export function ReportsPage() {
   const { campaignsList } = useBootstrap();
+  const [searchParams] = useSearchParams();
+  const initialView = searchParams.get('view');
   const [campId, setCampId] = useState<number>(campaignsList[0]?.id ?? 0);
-  const [view, setView] = useState<View>('allowed');
+  const [view, setView] = useState<View>(isView(initialView) ? initialView : 'allowed');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');

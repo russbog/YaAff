@@ -2,7 +2,19 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Plus, Search, MoreVertical, Pencil, Copy, Trash2, Sliders, Megaphone } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  MoreVertical,
+  Pencil,
+  Copy,
+  Trash2,
+  Sliders,
+  Megaphone,
+  Download,
+  Repeat,
+  BarChart3,
+} from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { Input, FormRow } from '@/components/ui/Field';
@@ -16,12 +28,14 @@ import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
 import { spa, campaignApi } from '@/lib/api';
 import { fmtStat, toNumber } from '@/lib/format';
+import { downloadCsv } from '@/lib/csv';
 import type { CampaignRow } from '@/lib/types';
 
 type DialogState =
   | { kind: 'create' }
   | { kind: 'rename'; row: CampaignRow }
   | { kind: 'duplicate'; row: CampaignRow }
+  | { kind: 'trafficback' }
   | null;
 
 export function CampaignsPage() {
@@ -30,10 +44,11 @@ export function CampaignsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const canManage = useCan()('campaigns.manage');
-  const { statFields } = useBootstrap();
+  const { statFields, trafficBackUrl } = useBootstrap();
   const [search, setSearch] = useState('');
   const [dialog, setDialog] = useState<DialogState>(null);
   const [name, setName] = useState('');
+  const [tbUrl, setTbUrl] = useState('');
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['campaigns'],
@@ -88,7 +103,23 @@ export function CampaignsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const trafficbackMut = useMutation({
+    mutationFn: (u: string) => spa.saveCommonSettings({ trafficBackUrl: u }),
+    onSuccess: () => {
+      toast.success('Trafficback URL saved');
+      setDialog(null);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const openAdvanced = (row: CampaignRow) => navigate(`/campaign/${row.id}`);
+
+  const exportCsv = () => {
+    const headers = ['Campaign', ...statFields.map((f) => f.title)];
+    const data = rows.map((r) => [r.name, ...statFields.map((f) => String(r[f.field] ?? ''))]);
+    downloadCsv(`campaigns-${new Date().toISOString().slice(0, 10)}.csv`, headers, data);
+  };
 
   const rows = useMemo(() => {
     const all = data?.rows ?? [];
@@ -177,6 +208,7 @@ export function CampaignsPage() {
   }, [statFields, canManage]);
 
   const submit = () => {
+    if (dialog?.kind === 'trafficback') return trafficbackMut.mutate(tbUrl.trim());
     const n = name.trim();
     if (!n) return toast.error('Name is required');
     if (dialog?.kind === 'create') createMut.mutate(n);
@@ -188,18 +220,42 @@ export function CampaignsPage() {
     <AppShell
       title="Campaigns"
       toolbar={
-        canManage && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              setName('');
-              setDialog({ kind: 'create' });
-            }}
-          >
-            <Plus size={15} /> New campaign
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={exportCsv} disabled={rows.length === 0}>
+            <Download size={14} /> Export CSV
           </Button>
-        )
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/reports?view=trafficback')}
+          >
+            <BarChart3 size={14} /> Trafficback stats
+          </Button>
+          {canManage && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setTbUrl(trafficBackUrl ?? '');
+                setDialog({ kind: 'trafficback' });
+              }}
+            >
+              <Repeat size={14} /> Trafficback URL
+            </Button>
+          )}
+          {canManage && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setName('');
+                setDialog({ kind: 'create' });
+              }}
+            >
+              <Plus size={15} /> New campaign
+            </Button>
+          )}
+        </div>
       }
     >
       {error ? (
@@ -259,12 +315,16 @@ export function CampaignsPage() {
             ? 'New campaign'
             : dialog?.kind === 'rename'
               ? 'Rename campaign'
-              : 'Duplicate campaign'
+              : dialog?.kind === 'trafficback'
+                ? 'Trafficback URL'
+                : 'Duplicate campaign'
         }
         description={
           dialog?.kind === 'duplicate'
             ? 'Clones all routing rules and flows into a new campaign.'
-            : undefined
+            : dialog?.kind === 'trafficback'
+              ? 'Where filtered/blocked traffic is sent when no rule matches. Tokens allowed.'
+              : undefined
         }
         footer={
           <>
@@ -273,23 +333,46 @@ export function CampaignsPage() {
             </Button>
             <Button
               variant="primary"
-              loading={createMut.isPending || renameMut.isPending || dupMut.isPending}
+              loading={
+                createMut.isPending ||
+                renameMut.isPending ||
+                dupMut.isPending ||
+                trafficbackMut.isPending
+              }
               onClick={submit}
             >
-              {dialog?.kind === 'create' ? 'Create' : dialog?.kind === 'rename' ? 'Save' : 'Duplicate'}
+              {dialog?.kind === 'create'
+                ? 'Create'
+                : dialog?.kind === 'rename'
+                  ? 'Save'
+                  : dialog?.kind === 'trafficback'
+                    ? 'Save'
+                    : 'Duplicate'}
             </Button>
           </>
         }
       >
-        <FormRow label="Campaign name" required>
-          <Input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && submit()}
-            placeholder="e.g. Nutra — DE — Facebook"
-          />
-        </FormRow>
+        {dialog?.kind === 'trafficback' ? (
+          <FormRow label="Trafficback URL">
+            <Input
+              autoFocus
+              value={tbUrl}
+              onChange={(e) => setTbUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && submit()}
+              placeholder="https://example.com/back?clickid={clickid}"
+            />
+          </FormRow>
+        ) : (
+          <FormRow label="Campaign name" required>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && submit()}
+              placeholder="e.g. Nutra — DE — Facebook"
+            />
+          </FormRow>
+        )}
       </Modal>
     </AppShell>
   );
