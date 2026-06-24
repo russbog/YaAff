@@ -9,6 +9,14 @@ require_once __DIR__ . '/flow/FlowSelector.php';
 
 class Tds
 {
+    private static function click_matches_white_filters(FiltrationCore $clkr, array $filters): bool
+    {
+        if (empty($filters['rules']) || !is_array($filters['rules'])) {
+            return false;
+        }
+        return $clkr->click_matches_filters($filters);
+    }
+
     public static function getAction(): CloakerAction
     {
         global $db;
@@ -20,7 +28,7 @@ class Tds
             $clkr = new FiltrationCore();
             $clkr->setContext($c->campaignId);
 
-            if ($clkr->click_matches_filters($c->white->filters)) {
+            if (self::click_matches_white_filters($clkr, $c->white->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
@@ -51,7 +59,7 @@ class Tds
             $clkr = new FiltrationCore($prefill);
             $clkr->setContext($c->campaignId);
 
-            if ($clkr->click_matches_filters($c->white->filters)) {
+            if (self::click_matches_white_filters($clkr, $c->white->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
@@ -153,7 +161,7 @@ class Tds
             $clkr = new FiltrationCore($prefill);
             $clkr->setContext($c->campaignId);
 
-            if ($clkr->click_matches_filters($c->white->filters)) {
+            if (self::click_matches_white_filters($clkr, $c->white->filters)) {
                 $db->add_white_click($clkr->click_params, $clkr->block_reason, $c->campaignId);
                 $action = white($c);
             } else {
