@@ -122,6 +122,7 @@ $headerDateConfig = [
             'domains.php'  => ['Domains', 'bi-globe2'],
             'integrations.php' => ['Conversion APIs', 'bi-cloud-upload'],
             'conversions.php' => ['Conversions', 'bi-graph-up-arrow'],
+            'blacklists.php' => ['Bot Protection', 'bi-shield-shaded'],
         ];
     ?>
     <div class="entity-nav-area">

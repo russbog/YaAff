@@ -1,0 +1,32 @@
+{
+  "feeds": [
+    {
+      "name": "firehol_level1",
+      "type": "ip",
+      "tag": "datacenter",
+      "url": "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/firehol_level1.netset",
+      "enabled": true
+    },
+    {
+      "name": "stopforumspam_toxic",
+      "type": "ip",
+      "tag": "abuse",
+      "url": "https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/stopforumspam_toxic.ipset",
+      "enabled": false
+    },
+    {
+      "name": "datacenter_asn",
+      "type": "ip",
+      "tag": "datacenter",
+      "url": "https://raw.githubusercontent.com/X4BNet/lists_vpn/main/output/datacenter/ipv4.txt",
+      "enabled": false
+    },
+    {
+      "name": "crawler_user_agents",
+      "type": "ua",
+      "tag": "bot",
+      "url": "",
+      "enabled": false
+    }
+  ]
+}

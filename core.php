@@ -27,6 +27,8 @@ require_once __DIR__ . '/bases/iputils.php';
 require_once __DIR__ . '/bases/ipcountry.php';
 //Extended filter helpers (masks, regex, search-engines, timetable)
 require_once __DIR__ . '/filters/FilterFunctions.php';
+//Offline auto-updated IP/UA blacklists (datacenter/proxy/bot)
+require_once __DIR__ . '/bots/BlacklistStore.php';
 
 use DeviceDetector\ClientHints;
 use DeviceDetector\DeviceDetector;
@@ -40,6 +42,16 @@ class FiltrationCore
     public array $click_params = [];
     public int $campaignId = 0;
     public string $flowName = '';
+
+    private static ?BlacklistStore $blacklistStore = null;
+
+    private static function blacklistStore(): BlacklistStore
+    {
+        if (self::$blacklistStore === null) {
+            self::$blacklistStore = new BlacklistStore(__DIR__ . '/bases/blacklists');
+        }
+        return self::$blacklistStore;
+    }
 
     public function __construct(array $prefill = [])
     {
@@ -96,7 +108,7 @@ class FiltrationCore
         $a['device'] = $dd->getDeviceName();
         $a['brand'] = $dd->getBrandName();
         $a['model'] = $dd->getModel();
-        $a['bot'] = $dd->isBot() ? 1 : 0;
+        $a['bot'] = ($dd->isBot() || self::blacklistStore()->matchesUa((string)$a['ua'])) ? 1 : 0;
 
         DebugMethods::start("YWBCoreMaxMind");
         $a['ip'] = getip($prefill['tds_ip'] ?? $_SERVER);
@@ -441,6 +453,11 @@ class FiltrationCore
 
     private function is_proxy_or_vpn($ip): bool
     {
+        //fast offline check against auto-updated datacenter/proxy/VPN blacklists
+        if (self::blacklistStore()->matchesIp((string)$ip)) {
+            return true;
+        }
+
         //checks the commonly added by proxies header X-Forwarded-For
         if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
             $xip = $_SERVER['HTTP_X_FORWARDED_FOR'];
