@@ -129,8 +129,12 @@ function mergeSettingsRecursive($current, $incoming) {
         return $incoming;
     }
 
-    if (!is_array($current) || array_is_list($incoming)) {
+    if (array_is_list($incoming)) {
         return compactListRecursive($incoming);
+    }
+
+    if (!is_array($current)) {
+        $current = [];
     }
 
     foreach ($incoming as $key => $value) {
