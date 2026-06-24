@@ -12,6 +12,11 @@ $cloSettings =
 //when behind Cloudflare, the real visitor IP will be taken from CF-Connecting-IP only for real Cloudflare proxy IPs
 "adminIp" => "",
 
+//master bearer token for the REST API (Phase 11). When set it grants full
+//(super-admin) access via "Authorization: Bearer <token>". Leave empty to
+//disable the master token and require a per-user api_token instead.
+"apiToken" => "",
+
 //WARNING:if you are using nginx either change your website's config so that it prevents people from
 //downloading your database, or just rename the db file so security through obscurity will work! :-D
 "dbConnection" => "clicks.db",
