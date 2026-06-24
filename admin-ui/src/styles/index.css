@@ -59,3 +59,13 @@
     @apply outline-none ring-2 ring-brand/60 ring-offset-2 ring-offset-bg;
   }
 }
+
+/* Swagger UI (REST API page) — trim its built-in header/topbar so the
+   third-party explorer blends into the modern shell. */
+.yaaff-swagger .swagger-ui .topbar,
+.yaaff-swagger .swagger-ui .information-container .info hgroup.main a {
+  display: none;
+}
+.yaaff-swagger .swagger-ui {
+  padding: 4px 8px 12px;
+}

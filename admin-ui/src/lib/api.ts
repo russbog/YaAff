@@ -309,6 +309,65 @@ export const fileApi = {
   },
 };
 
+export interface BlacklistFeed {
+  name: string;
+  type: string;
+  tag: string;
+  url: string;
+  enabled: boolean;
+  cached: boolean;
+  entries: number;
+  updated_at: string | null;
+}
+
+export interface BlacklistUpdateResult {
+  name: string;
+  ok: boolean;
+  skipped?: boolean;
+  entries?: number;
+  error?: string;
+}
+
+// Bot-protection blacklist feeds (blacklists.php). status() lists feed cache
+// state; update() triggers an on-demand refresh and returns per-feed results.
+export const blacklistApi = {
+  status: () => apiGet<{ ok: true; feeds: BlacklistFeed[] }>('blacklists.php', { action: 'status' }),
+  update: () =>
+    apiGet<{ ok: true; results: BlacklistUpdateResult[]; feeds: BlacklistFeed[] }>('blacklists.php', {
+      action: 'update',
+    }),
+};
+
+export interface DataInfo {
+  ok: true;
+  driver: string;
+  retentionDays: number;
+  retentionTables: string[];
+  tables: { name: string; rows: number }[];
+}
+
+// Backup / restore / retention (data.php).
+export const dataApi = {
+  info: () => apiGet<DataInfo>('data.php', { action: 'info' }),
+  backupUrl: () => url('data.php', { action: 'backup' }),
+  restore: async (file: File): Promise<{ ok: true; restored: Record<string, number> }> => {
+    const fd = new FormData();
+    fd.append('archive', file);
+    const res = await fetch(url('data.php', { action: 'restore' }), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      body: fd,
+    });
+    return parse(res);
+  },
+  prune: (days: number) =>
+    apiGet<{ ok: true; days: number; cutoff: string; deleted: Record<string, number> }>('data.php', {
+      action: 'prune',
+      days,
+    }),
+};
+
 // First-class entity CRUD via entityapi.php.
 export const entityApi = {
   list: (type: string) =>
