@@ -12,12 +12,10 @@ class AutoUpdater {
     private const UPDATE_DIR = __DIR__ . '/../temp_update';
     private const PRESERVED_PATHS = [
         'settings.php',
-        'db',
         'logs',
         'ycclogs',
         'tmp',
         'caching',
-        'bases',
         'backups',
         'temp_update',
         'fromfolder',
@@ -28,6 +26,13 @@ class AutoUpdater {
         'admin/version.txt',
         'admin/autoupdate.php',
         'index.php',
+    ];
+    private const PRESERVED_FILE_PATTERNS = [
+        '#^db/.*\.db(?:-shm|-wal)?$#',
+        '#^bases/.*\.mmdb$#',
+        '#^bases/update\.txt$#',
+        '#^bases/source\.txt$#',
+        '#^bases/blacklists/.*\.(?:ip|ua)$#',
     ];
 
     private $currentVersion;
@@ -198,6 +203,11 @@ class AutoUpdater {
         $relativePath = trim(str_replace('\\', '/', $relativePath), '/');
         foreach (self::PRESERVED_PATHS as $preservedPath) {
             if ($relativePath === $preservedPath || str_starts_with($relativePath, $preservedPath . '/')) {
+                return true;
+            }
+        }
+        foreach (self::PRESERVED_FILE_PATTERNS as $pattern) {
+            if (preg_match($pattern, $relativePath) === 1) {
                 return true;
             }
         }
