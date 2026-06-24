@@ -432,3 +432,54 @@ label,
 #updateOverlay .cursor {
     color: #8be9fd;
 }
+
+.camp-menu-dropdown {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    min-width: 150px;
+    padding: 4px 0;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    background: #1e293b;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
+}
+
+.camp-menu-dropdown.show {
+    display: block;
+}
+
+.camp-menu-item {
+    padding: 6px 12px;
+    color: #cbd5e1;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.1s;
+}
+
+.camp-menu-item:hover {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+.camp-menu-item i {
+    width: 16px;
+    margin-right: 6px;
+    text-align: center;
+}
+
+.camp-menu-danger {
+    color: #f87171;
+}
+
+.camp-menu-danger:hover {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+.camp-menu-divider {
+    height: 1px;
+    margin: 4px 0;
+    background: #334155;
+}
