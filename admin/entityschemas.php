@@ -145,6 +145,24 @@ function entity_schemas(): array
                 ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
             ],
         ],
+        'rules' => [
+            'title' => 'Automation Rules',
+            'singular' => 'Rule',
+            'icon' => 'bi-robot',
+            'fields' => [
+                ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
+                ['key' => 'group', 'label' => 'Group', 'type' => 'text'],
+                ['key' => 'enabled', 'label' => 'Enabled', 'type' => 'checkbox', 'default' => true],
+                ['key' => 'schedule', 'label' => 'Schedule', 'type' => 'text', 'default' => '@hourly', 'help' => 'Interval (300, every:5m, every:2h), cron (m h dom mon dow), macro (@hourly, @daily) or empty (every run).'],
+                ['key' => 'timezone', 'label' => 'Timezone', 'type' => 'text', 'default' => 'UTC', 'help' => 'IANA tz used for cron schedules and the metric window.'],
+                ['key' => 'campaign_id', 'label' => 'Campaign', 'type' => 'number', 'default' => 0, 'help' => 'Metric scope. 0 = all campaigns.'],
+                ['key' => 'window', 'label' => 'Metric window', 'type' => 'select', 'options' => ['today' => 'Today', 'yesterday' => 'Yesterday', '1h' => 'Last 1h', '24h' => 'Last 24h', '7d' => 'Last 7d', '30d' => 'Last 30d'], 'default' => 'today'],
+                ['key' => 'match', 'label' => 'Match', 'type' => 'select', 'options' => ['all' => 'All conditions (AND)', 'any' => 'Any condition (OR)'], 'default' => 'all'],
+                ['key' => 'conditions', 'label' => 'Conditions', 'type' => 'json', 'help' => 'JSON list of {"metric":"roi","op":"lt","value":-20}. Metrics: clicks, uniques, bots, blocked, leads, purchases, conversions, revenue, cost, profit, roi, cr, epc, cpc. Empty = unconditional.'],
+                ['key' => 'actions', 'label' => 'Actions', 'type' => 'json', 'help' => 'JSON list, e.g. [{"type":"pause_campaign"},{"type":"set_flow_weight","flow":"Flow 1","weight":0},{"type":"export_report","range":"today","output":"exports/{date}.csv"},{"type":"update_blacklists"},{"type":"log","message":"hi"}]'],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+            ],
+        ],
     ];
 
     return $schemas;

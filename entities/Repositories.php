@@ -9,6 +9,7 @@ require_once __DIR__ . '/Landing.php';
 require_once __DIR__ . '/Integration.php';
 require_once __DIR__ . '/Domain.php';
 require_once __DIR__ . '/Group.php';
+require_once __DIR__ . '/Rule.php';
 
 /**
  * Factory for the generic {@see EntityRepository}, one per entity type, cached
@@ -28,6 +29,7 @@ class Repositories
         'landings' => [Landing::class, 'Landings'],
         'integrations' => [Integration::class, 'Integrations'],
         'domains'  => [Domain::class,  'Domains'],
+        'rules'    => [Rule::class,    'Rules'],
         'groups'   => [Group::class,   'Groups'],
     ];
 
@@ -69,6 +71,11 @@ class Repositories
     public static function domains(DbDriver $driver): EntityRepository
     {
         return self::for($driver, Domain::TABLE, Domain::class);
+    }
+
+    public static function rules(DbDriver $driver): EntityRepository
+    {
+        return self::for($driver, Rule::TABLE, Rule::class);
     }
 
     public static function groups(DbDriver $driver): EntityRepository

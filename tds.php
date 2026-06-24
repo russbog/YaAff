@@ -13,7 +13,7 @@ class Tds
     {
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
-        if ($dbCamp === false) {
+        if ($dbCamp === false || self::isPaused($dbCamp)) {
             $action = traficback(FiltrationCore::get_click_params());
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
@@ -44,7 +44,7 @@ class Tds
     {
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
-        if ($dbCamp === false) {
+        if ($dbCamp === false || self::isPaused($dbCamp)) {
             $action = traficback(FiltrationCore::get_click_params($prefill));
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
@@ -81,7 +81,7 @@ class Tds
     {
         global $db;
         $dbCamp = $db->get_campaign_by_domain();
-        if ($dbCamp === false) { //campaign already deleted or domain changed? lol
+        if ($dbCamp === false || self::isPaused($dbCamp)) { //campaign already deleted, domain changed, or paused
             if (DebugMethods::on()) {
                 $action = new JsAction("traficback", "js", "console.log('Debug: No campaign found for this domain!');");
             } else {
@@ -146,7 +146,7 @@ class Tds
     {
         global $db;
         $dbCamp = $db->get_campaign_by_apikey($apikey);
-        if (empty($dbCamp)) {
+        if (empty($dbCamp) || self::isPaused($dbCamp)) {
             $action = traficback(FiltrationCore::get_click_params($prefill));
         } else {
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
@@ -171,6 +171,20 @@ class Tds
             }
         }
         return PhpAction::FromCloakerAction($action);
+    }
+
+    /**
+     * A campaign paused by the automation engine (Phase 8) stops serving and
+     * behaves like an unknown domain. The flag is absent on legacy campaigns,
+     * so the default is "enabled" — fully backward compatible.
+     */
+    public static function isPaused(array $dbCamp): bool
+    {
+        $settings = $dbCamp['settings'] ?? [];
+        if (is_string($settings)) {
+            $settings = json_decode($settings, true) ?: [];
+        }
+        return ($settings['enabled'] ?? true) === false;
     }
 
     public static function pick_flow_index(FiltrationCore $clkr, array $flows): ?int
