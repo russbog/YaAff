@@ -138,6 +138,9 @@ class FiltrationCore
 
     private function match_filters(bool $all, array|null $filters): bool
     {
+        if ($filters === null || $filters === []) {
+            return $all;
+        }
         for ($i = 0; $i < count($filters); $i++) {
             $f = $filters[$i];
             if (!empty($f['condition'])) {//this is a filter group
@@ -382,7 +385,8 @@ class FiltrationCore
                 $pattern = FilterFunctions::isRegex($val) ? $val : '/' . $val . '/i';
                 return @preg_match($pattern, $paramValue) !== 1;
             default:
-                die("Operator $operator is not defined!");
+                add_log('error', "Operator $operator is not defined!");
+                return false;
         }
     }
 

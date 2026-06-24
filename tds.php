@@ -111,8 +111,7 @@ class Tds
             $jscheck_start_time = session_read('jscheck_pending');
             $current_time = time();
             $c = new Campaign($dbCamp['id'], $dbCamp['settings']);
-            // Convert from milliseconds to seconds
-            $max_execution_time = $c->black->jsBotDetection->timeout / 1000;
+            $max_execution_time = $c->black->jsBotDetection->timeout;
             // Add 5 second buffer
             $allowed_time = $jscheck_start_time + $max_execution_time + 5;
 

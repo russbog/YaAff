@@ -13,8 +13,8 @@
     top: 70px;
     height: calc(100vh - 70px);
     overflow-y: auto;
-    background: #152036;
-    border-right: 1px solid #2a3f6a;
+    background: var(--yaaff-panel, #152036);
+    border-right: 1px solid var(--yaaff-border, #2a3f6a);
     padding: 15px 0;
     z-index: 10;
 }
@@ -23,8 +23,8 @@
     padding: 12px 20px;
     font-size: 15px;
     font-weight: 600;
-    color: #fff;
-    border-bottom: 1px solid #2a3f6a;
+    color: var(--yaaff-text, #fff);
+    border-bottom: 1px solid var(--yaaff-border, #2a3f6a);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -62,7 +62,7 @@
     flex: 1;
     min-width: 0;
     padding: 0 35px 20px 35px;
-    background-color: #1D2A48;
+    background-color: var(--yaaff-surface-strong, #1D2A48);
 }
 
 .camp-section {
@@ -205,7 +205,7 @@
 
 /* Flow section visual groups */
 .flow-group {
-    border: 1px solid #2a3f6a;
+    border: 1px solid var(--yaaff-border, #2a3f6a);
     border-radius: 6px;
     padding: 15px 18px 10px;
     margin-bottom: 18px;
@@ -216,7 +216,7 @@
     position: absolute;
     top: -10px;
     left: 14px;
-    background: #1D2A48;
+    background: var(--yaaff-surface-strong, #1D2A48);
     padding: 0 8px;
     font-size: 13px;
     font-weight: 600;

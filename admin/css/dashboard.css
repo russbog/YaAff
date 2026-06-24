@@ -25,7 +25,8 @@
     --dash-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
 
     color: var(--dash-text);
-    font-family: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: Inter, "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+    contain: layout style;
     padding-bottom: 36px;
 }
 
@@ -235,7 +236,7 @@
     border-radius: 10px;
     font-size: 17px;
     color: var(--kpi-accent, var(--dash-blue));
-    background: color-mix(in srgb, var(--kpi-accent, var(--dash-blue)) 16%, transparent);
+    background: rgba(59, 156, 255, 0.16);
 }
 .kpi-value {
     font-size: 26px;
@@ -322,7 +323,7 @@
 
 /* ---------- Chart ----------------------------------------------------- */
 .dash-chart-wrap { position: relative; width: 100%; }
-#dash-chart { width: 100%; display: block; }
+#dash-chart { width: 100%; display: block; will-change: auto; }
 
 .dash-tooltip {
     position: absolute;

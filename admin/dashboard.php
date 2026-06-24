@@ -20,9 +20,11 @@ if ($action === 'data') {
         $dtz = new DateTimeZone('UTC');
     }
     $offsetInSeconds = (new DateTime('now', $dtz))->getOffset();
-    $hours = (int)floor($offsetInSeconds / 3600);
-    $minutes = (int)floor(($offsetInSeconds % 3600) / 60);
-    $tzOffset = sprintf('%+03d:%02d', $hours, $minutes);
+    $absOffset = abs($offsetInSeconds);
+    $hours = (int)floor($absOffset / 3600);
+    $minutes = (int)floor(($absOffset % 3600) / 60);
+    $sign = $offsetInSeconds >= 0 ? '+' : '-';
+    $tzOffset = sprintf('%s%02d:%02d', $sign, $hours, $minutes);
 
     $q = new DashboardQuery($db->driver());
     echo json_encode([
