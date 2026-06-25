@@ -197,11 +197,30 @@ try {
             $sign = $offsetInSeconds >= 0 ? '+' : '-';
             $tzOffset = sprintf('%s%02d:%02d', $sign, (int)floor($absOffset / 3600), (int)floor(($absOffset % 3600) / 60));
             $q = new DashboardQuery($db->driver());
+            // DashboardQuery speaks the report vocabulary (name/clicks, bucket);
+            // the SPA charts expect {label,value} rows and a {t,...} series, so
+            // adapt the shapes here without touching the query layer or its tests.
+            $topRows = static fn(array $rows): array => array_map(
+                static fn(array $r): array => [
+                    'label' => (string)($r['name'] ?? ''),
+                    'value' => (int)($r['clicks'] ?? 0),
+                ],
+                $rows
+            );
+            $series = array_map(
+                static fn(array $r): array => [
+                    't'           => (string)($r['bucket'] ?? ''),
+                    'clicks'      => (int)($r['clicks'] ?? 0),
+                    'conversions' => (int)($r['conversions'] ?? 0),
+                    'revenue'     => (float)($r['revenue'] ?? 0),
+                ],
+                $q->timeseries($campId, $start, $end, $tzOffset)
+            );
             spa_respond([
                 'summary'     => $q->summary($campId, $start, $end),
-                'series'      => $q->timeseries($campId, $start, $end, $tzOffset),
-                'top_country' => $q->topBy('country', $campId, $start, $end, 8),
-                'top_flow'    => $q->topBy('flow', $campId, $start, $end, 8),
+                'series'      => $series,
+                'top_country' => $topRows($q->topBy('country', $campId, $start, $end, 8)),
+                'top_flow'    => $topRows($q->topBy('flow', $campId, $start, $end, 8)),
             ]);
         }
 
