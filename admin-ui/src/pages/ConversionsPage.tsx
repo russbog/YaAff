@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Upload, TrendingUp } from 'lucide-react';
+import { Upload, TrendingUp, Download } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Select } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +13,7 @@ import { useToast } from '@/providers/ToastProvider';
 import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
 import { spa, conversionsApi, type ConversionImportResult } from '@/lib/api';
 import { fmtDateTime, fmtMoney, toNumber } from '@/lib/format';
+import { downloadCsv } from '@/lib/csv';
 import type { Conversion } from '@/lib/types';
 
 function humanize(key: string): string {
@@ -53,16 +54,32 @@ export function ConversionsPage() {
 
   const rows = useMemo(() => data?.data ?? [], [data]);
 
-  const columns = useMemo<ColumnDef<Conversion, unknown>[]>(() => {
+  const orderedKeys = useMemo(() => {
     const keys = new Set<string>();
-    rows.slice(0, 30).forEach((r) => Object.keys(r).forEach((k) => keys.add(k)));
+    rows.slice(0, 30).forEach((r) => Object.keys(r as Record<string, unknown>).forEach((k) => keys.add(k)));
     const priority = ['time', 'clickid', 'status', 'payout', 'revenue', 'currency'];
-    const ordered = Array.from(keys).sort((a, b) => {
+    return Array.from(keys).sort((a, b) => {
       const ia = priority.indexOf(a);
       const ib = priority.indexOf(b);
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
-    return ordered.map((key) => ({
+  }, [rows]);
+
+  const exportCsv = () => {
+    if (rows.length === 0) return;
+    const headers = orderedKeys.map(humanize);
+    const body = rows.map((r) =>
+      orderedKeys.map((k) => {
+        const v = (r as Record<string, unknown>)[k];
+        if (k === 'time') return fmtDateTime(v);
+        return v === null || v === undefined ? '' : String(v);
+      }),
+    );
+    downloadCsv(`conversions-${new Date().toISOString().slice(0, 10)}.csv`, headers, body);
+  };
+
+  const columns = useMemo<ColumnDef<Conversion, unknown>[]>(() => {
+    return orderedKeys.map((key) => ({
       id: key,
       header: humanize(key),
       accessorFn: (r) => (r as Record<string, unknown>)[key],
@@ -76,7 +93,7 @@ export function ConversionsPage() {
         return <span className="truncate max-w-[220px] inline-block align-middle" title={str}>{str}</span>;
       },
     }));
-  }, [rows]);
+  }, [orderedKeys]);
 
   return (
     <AppShell
@@ -91,6 +108,9 @@ export function ConversionsPage() {
               </option>
             ))}
           </Select>
+          <Button variant="secondary" size="sm" onClick={exportCsv} disabled={rows.length === 0}>
+            <Download size={13} /> Export CSV
+          </Button>
           {canManage && (
             <Button variant="secondary" size="sm" onClick={() => setImportOpen(true)}>
               <Upload size={13} /> Import CSV
