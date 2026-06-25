@@ -93,7 +93,9 @@ class TokenRegistry
             str_starts_with($token, 'random:') => $this->random(substr($token, 7)),
             self::isSubToken($token)           => $this->customParam($token),
             in_array($token, self::CLICK_COLUMNS, true) => $this->column($token),
-            default => null,
+            // Bare names fall back to custom query params, so a passthrough
+            // param `?foo=bar` is referenceable as both {c.foo} and {foo}.
+            default => $this->customParam($token),
         };
     }
 
@@ -111,6 +113,113 @@ class TokenRegistry
             $v = $this->resolve($m[1]);
             return $v === null ? $m[0] : $v;
         }, $template);
+    }
+
+    /**
+     * Substitute {token} placeholders anywhere in an outgoing URL — in the path
+     * and inside any query value (whole or embedded). Resolved values are
+     * URL-encoded per component; unknown tokens collapse to an empty string
+     * (so a missing param just drops out, e.g. `/{a}?to={b}` → `/?to=...`).
+     */
+    public function renderUrl(string $url): string
+    {
+        if ($url === '' || strpos($url, '{') === false) {
+            return $url;
+        }
+        $parts = parse_url($url);
+        if ($parts === false) {
+            return $url;
+        }
+
+        if (isset($parts['host']) && strpos($parts['host'], '{') !== false) {
+            // Host is not URL-encoded (a domain must stay literal).
+            $parts['host'] = $this->substituteTokens($parts['host'], false);
+        }
+        if (isset($parts['path']) && strpos($parts['path'], '{') !== false) {
+            $parts['path'] = $this->substituteTokens($parts['path'], true);
+        }
+        if (isset($parts['fragment']) && strpos($parts['fragment'], '{') !== false) {
+            $parts['fragment'] = $this->substituteTokens($parts['fragment'], true);
+        }
+        if (isset($parts['query']) && $parts['query'] !== '') {
+            parse_str($parts['query'], $query);
+            $parts['query'] = http_build_query($this->substituteQuery($query));
+        }
+
+        return self::buildUrl($parts, $url);
+    }
+
+    /**
+     * Replace tokens in a string. Resolved values are rawurlencoded when
+     * $encode is set (path/fragment context); query values are left raw because
+     * http_build_query encodes them afterwards. Unknown tokens become ''.
+     */
+    private function substituteTokens(string $template, bool $encode): string
+    {
+        return preg_replace_callback('/\{([a-zA-Z0-9_.:-]+)\}/', function (array $m) use ($encode): string {
+            $v = $this->resolve($m[1]);
+            if ($v === null) {
+                return '';
+            }
+            return $encode ? rawurlencode($v) : $v;
+        }, $template);
+    }
+
+    /**
+     * Substitute tokens inside every (possibly nested) query key and value, so
+     * both `?{name}=v` and `?k={value}` resolve. http_build_query re-encodes
+     * afterwards, so values are left raw here.
+     *
+     * @param array<array-key,mixed> $query
+     * @return array<array-key,mixed>
+     */
+    private function substituteQuery(array $query): array
+    {
+        $out = [];
+        foreach ($query as $k => $v) {
+            if (is_string($k) && strpos($k, '{') !== false) {
+                $k = $this->substituteTokens($k, false);
+            }
+            if (is_array($v)) {
+                $v = $this->substituteQuery($v);
+            } elseif (is_string($v) && strpos($v, '{') !== false) {
+                $v = $this->substituteTokens($v, false);
+            }
+            $out[$k] = $v;
+        }
+        return $out;
+    }
+
+    /** Reassemble a parse_url() component array into a URL string. */
+    private static function buildUrl(array $parts, string $fallback): string
+    {
+        $url = '';
+        if (isset($parts['scheme'])) {
+            $url .= $parts['scheme'] . '://';
+        }
+        if (isset($parts['user'])) {
+            $url .= $parts['user'];
+            if (isset($parts['pass'])) {
+                $url .= ':' . $parts['pass'];
+            }
+            $url .= '@';
+        }
+        if (isset($parts['host'])) {
+            $url .= $parts['host'];
+        }
+        if (isset($parts['port'])) {
+            $url .= ':' . $parts['port'];
+        }
+        if (isset($parts['path'])) {
+            $url .= $parts['path'];
+        }
+        if (isset($parts['query']) && $parts['query'] !== '') {
+            $url .= '?' . $parts['query'];
+        }
+        if (isset($parts['fragment']) && $parts['fragment'] !== '') {
+            $url .= '#' . $parts['fragment'];
+        }
+        return $url === '' ? $fallback : $url;
     }
 
     /**

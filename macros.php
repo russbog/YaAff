@@ -46,59 +46,10 @@ class MacrosProcessor
     public function replace_url_macros($url): string
     {
         if (empty($url)) return "";
-        $url_components = parse_url($url);
-        if ($url_components === false) {
-            return $url;
-        }
-        parse_str($url_components['query'] ?? '', $query_array);
-
-        // Replace query values that are exactly a {macro} with their token value.
-        foreach ($query_array as $qk => $qv) {
-            if (empty($qv))
-                continue;
-            if ($qv[0] !== '{' || $qv[strlen($qv) - 1] !== '}')
-                continue; //we need only macroses
-
-            $macro = substr($qv, 1, strlen($qv) - 2);
-            $macroValue = $this->registry->resolve($macro);
-            if ($macroValue === null) {
-                add_log("macros", "Couldn't find macros: $macro for url $url");
-                continue;
-            }
-            $query_array[$qk] = $macroValue;
-        }
-
-        // Build the new query string
-        $new_query = http_build_query($query_array);
-
-        // Rebuild the URL (supports both absolute and relative URLs)
-        $new_url = '';
-        if (isset($url_components['scheme'])) {
-            $new_url .= $url_components['scheme'] . '://';
-        }
-        if (isset($url_components['user'])) {
-            $new_url .= $url_components['user'];
-            if (isset($url_components['pass'])) {
-                $new_url .= ':' . $url_components['pass'];
-            }
-            $new_url .= '@';
-        }
-        if (isset($url_components['host'])) {
-            $new_url .= $url_components['host'];
-        }
-        if (isset($url_components['port'])) {
-            $new_url .= ':' . $url_components['port'];
-        }
-        if (isset($url_components['path'])) {
-            $new_url .= $url_components['path'];
-        }
-        if ($new_query) {
-            $new_url .= '?' . $new_query;
-        }
-        if (isset($url_components['fragment'])) {
-            $new_url .= '#' . $url_components['fragment'];
-        }
-
-        return $new_url === '' ? $url : $new_url;
+        // Substitute {token} placeholders anywhere in the URL (path + query
+        // values), resolving custom passthrough params by bare name and
+        // dropping unknown tokens to empty — Keitaro-style. Resolution is
+        // centralized in the shared TokenRegistry.
+        return $this->registry->renderUrl((string)$url);
     }
 }
