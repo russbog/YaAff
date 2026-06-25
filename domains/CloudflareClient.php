@@ -71,6 +71,58 @@ class CloudflareClient
         ];
     }
 
+    /**
+     * Build the request to list DNS records in a zone, optionally filtered by
+     * name and type. Used to check whether a record already exists. Pure.
+     *
+     * @return array{method:string,url:string,headers:array<int,string>,body:string}
+     */
+    public static function buildListDnsRecordsRequest(string $token, string $zoneId, string $name = '', string $type = ''): array
+    {
+        $query = [];
+        if ($name !== '') {
+            $query['name'] = $name;
+        }
+        if ($type !== '') {
+            $query['type'] = strtoupper($type);
+        }
+        $url = self::API_BASE . '/zones/' . rawurlencode($zoneId) . '/dns_records';
+        if ($query !== []) {
+            $url .= '?' . http_build_query($query);
+        }
+        return ['method' => 'GET', 'url' => $url, 'headers' => self::authHeaders($token), 'body' => ''];
+    }
+
+    /**
+     * Build the request to read a zone's Universal SSL setting. Pure.
+     *
+     * @return array{method:string,url:string,headers:array<int,string>,body:string}
+     */
+    public static function buildGetUniversalSslRequest(string $token, string $zoneId): array
+    {
+        return [
+            'method' => 'GET',
+            'url' => self::API_BASE . '/zones/' . rawurlencode($zoneId) . '/ssl/universal/settings',
+            'headers' => self::authHeaders($token),
+            'body' => '',
+        ];
+    }
+
+    /**
+     * Build the request to enable/disable a zone's Universal SSL. Pure.
+     *
+     * @return array{method:string,url:string,headers:array<int,string>,body:string}
+     */
+    public static function buildSetUniversalSslRequest(string $token, string $zoneId, bool $enabled): array
+    {
+        return [
+            'method' => 'PATCH',
+            'url' => self::API_BASE . '/zones/' . rawurlencode($zoneId) . '/ssl/universal/settings',
+            'headers' => self::authHeaders($token),
+            'body' => (string)json_encode(['enabled' => $enabled], JSON_UNESCAPED_SLASHES),
+        ];
+    }
+
     /** @return array<int,string> */
     private static function authHeaders(string $token): array
     {
@@ -98,6 +150,33 @@ class CloudflareClient
         return self::send(self::buildVerifyTokenRequest($token));
     }
 
+    /** High-level: list DNS records (optionally filtered). @return array see {@see send()} */
+    public static function listDnsRecords(string $token, string $zoneId, string $name = '', string $type = ''): array
+    {
+        if ($token === '' || $zoneId === '') {
+            return self::failure('missing token or zone id');
+        }
+        return self::send(self::buildListDnsRecordsRequest($token, $zoneId, $name, $type));
+    }
+
+    /** High-level: read the zone's Universal SSL setting. @return array see {@see send()} */
+    public static function getUniversalSsl(string $token, string $zoneId): array
+    {
+        if ($token === '' || $zoneId === '') {
+            return self::failure('missing token or zone id');
+        }
+        return self::send(self::buildGetUniversalSslRequest($token, $zoneId));
+    }
+
+    /** High-level: enable/disable the zone's Universal SSL. @return array see {@see send()} */
+    public static function setUniversalSsl(string $token, string $zoneId, bool $enabled): array
+    {
+        if ($token === '' || $zoneId === '') {
+            return self::failure('missing token or zone id');
+        }
+        return self::send(self::buildSetUniversalSslRequest($token, $zoneId, $enabled));
+    }
+
     /**
      * Perform the request. Never throws. Parses Cloudflare's envelope
      * ({success, result, errors}) when present.
@@ -117,7 +196,7 @@ class CloudflareClient
             CURLOPT_HTTPHEADER => $req['headers'],
             CURLOPT_CUSTOMREQUEST => $req['method'],
         ];
-        if ($req['method'] === 'POST') {
+        if ($req['method'] !== 'GET' && ($req['body'] ?? '') !== '') {
             $opts[CURLOPT_POSTFIELDS] = $req['body'];
         }
         curl_setopt_array($curl, $opts);

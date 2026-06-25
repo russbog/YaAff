@@ -301,6 +301,44 @@ export const domainApi = {
   },
 };
 
+// --- Domain health status (domainstatus.php) ------------------------------
+
+export type DomainHealth = 'ok' | 'dns_await' | 'dns_error' | 'ssl_await' | 'ssl_error' | 'unreachable' | 'na';
+
+export interface DomainStatus {
+  status: DomainHealth;
+  detail: string;
+  ip: string | null;
+  cloudflare: boolean;
+  ssl_expires_at: number | null;
+  days_left: number | null;
+  needs_fix: boolean;
+  host: string;
+  checked_at: number;
+}
+
+export interface DomainFixResult {
+  ok: boolean;
+  method: 'cloudflare' | 'letsencrypt' | 'none';
+  queued: boolean;
+  detail: string;
+}
+
+export type DomainStatusMap = Record<string, DomainStatus>;
+
+export const domainStatusApi = {
+  // Cached status map for every domain (no live probing) — drives the table.
+  all: () => apiGet<{ ok: true; serverIp: string; statuses: DomainStatusMap }>('domainstatus.php', { action: 'all' }),
+  // Live re-check of a single domain.
+  check: (id: number) => apiSend<{ ok: true; status: DomainStatus }>('domainstatus.php', 'POST', { id }, { action: 'check' }),
+  // Live re-check of every domain.
+  checkAll: () =>
+    apiSend<{ ok: true; serverIp: string; statuses: DomainStatusMap }>('domainstatus.php', 'POST', {}, { action: 'check_all' }),
+  // Remediate one domain (CF inline, Let's Encrypt queued for the server cron), then re-check.
+  fix: (id: number) =>
+    apiSend<{ ok: boolean; fix: DomainFixResult; status: DomainStatus }>('domainstatus.php', 'POST', { id }, { action: 'fix' }),
+};
+
 export interface CloudflareResult {
   ok: boolean;
   http_code?: number;
