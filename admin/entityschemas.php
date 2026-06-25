@@ -109,7 +109,7 @@ function entity_schemas(): array
                 ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
                 ['key' => 'group', 'label' => 'Group', 'type' => 'text'],
                 ['key' => 'type', 'label' => 'Type', 'type' => 'select', 'options' => ['local' => 'Local (uploaded folder)', 'remote' => 'Remote URL'], 'default' => 'local'],
-                ['key' => 'path', 'label' => 'Local folder', 'type' => 'text', 'section' => 'Source', 'showIf' => ['field' => 'type', 'in' => ['local']], 'help' => 'Folder name of an uploaded landing. Upload a ZIP from the Landings toolbar, then pick its folder here.'],
+                ['key' => 'path', 'label' => 'Local folder', 'type' => 'text', 'section' => 'Source', 'showIf' => ['field' => 'type', 'in' => ['local']], 'help' => 'Auto-assigned: a local landing is stored in a folder named after its numeric id. Upload the ZIP directly in the landing form.'],
                 ['key' => 'url', 'label' => 'Remote URL', 'type' => 'text', 'section' => 'Source', 'showIf' => ['field' => 'type', 'in' => ['remote']], 'placeholder' => 'https://landing.com/?clickid={clickid}', 'help' => 'Where the visitor is sent for a remote landing. Tokens below are substituted live.', 'tokens' => $urlTokens],
                 ['key' => 'redirect_type', 'label' => 'Redirect type', 'type' => 'select', 'options' => $redirectTypes, 'default' => 'http_302', 'section' => 'Source', 'showIf' => ['field' => 'type', 'in' => ['remote']]],
                 ['key' => 'protect', 'label' => 'Bot protection / cloak', 'type' => 'checkbox', 'default' => false, 'section' => 'Protection', 'help' => 'Route detected bots to the safe page instead of this landing.'],

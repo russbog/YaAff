@@ -20,6 +20,26 @@ function zip_error(string $msg): void
     exit;
 }
 
+/** Recursively remove a directory and its contents. */
+function rrmdir(string $dir): void
+{
+    if (!is_dir($dir)) {
+        return;
+    }
+    foreach (scandir($dir) ?: [] as $entry) {
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
+        $path = $dir . DIRECTORY_SEPARATOR . $entry;
+        if (is_dir($path) && !is_link($path)) {
+            rrmdir($path);
+        } else {
+            @unlink($path);
+        }
+    }
+    @rmdir($dir);
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     zip_error('Only POST allowed');
 }
@@ -71,9 +91,15 @@ if ($landingDir === false) {
 }
 
 $targetDir = $landingDir . DIRECTORY_SEPARATOR . $folder;
+$overwrite = !empty($_POST['overwrite']);
 
 if (file_exists($targetDir)) {
-    zip_error('Folder "' . $folder . '" already exists. Choose a different name or delete it first.');
+    if (!$overwrite) {
+        zip_error('Folder "' . $folder . '" already exists. Choose a different name or delete it first.');
+    }
+    // Re-upload into an existing folder (e.g. replacing a landing's ZIP by id):
+    // wipe the current contents so the new archive fully replaces them.
+    rrmdir($targetDir);
 }
 
 // Open and validate ZIP
