@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Field';
+import { Input, Textarea } from '@/components/ui/Field';
 import {
   flowHasMultipleSteps,
   newStep,
@@ -132,6 +132,15 @@ export function FlowEditor({ flow, onChange }: { flow: Flow; onChange: (f: Flow)
             <p className="text-2xs text-faint italic">No steps. Add at least one.</p>
           )}
         </div>
+      </Group>
+
+      <Group title="Notes" desc="Private annotation for your team — never shown to visitors.">
+        <Textarea
+          rows={2}
+          placeholder="e.g. FB adset 12 — winning creative, keep weight high"
+          value={flow.notes}
+          onChange={(e) => onChange({ ...flow, notes: e.target.value })}
+        />
       </Group>
     </div>
   );
