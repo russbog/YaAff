@@ -162,6 +162,41 @@ final class DomainStatusTest extends TestCase
         $this->assertStringContainsString('location ^~ /api/openapi.php { return 404; }', $vhost);
     }
 
+    public function testEnsureVhostCurrentRewritesStaleVhostAndReloads(): void
+    {
+        $dir = sys_get_temp_dir() . '/yaaff-vhost-' . uniqid();
+        mkdir($dir, 0700, true);
+
+        // Subclass that pretends to be root and records reload commands instead
+        // of shelling out, so the rewrite/reload logic is testable off-server.
+        $acme = new class('/root/.acme.sh/acme.sh', '/var/www/yaaff', '/etc/yaaff-ssl', $dir, '/etc/nginx/snippets/yaaff-app.conf') extends AcmeSslManager {
+            public array $ran = [];
+            protected function isRoot(): bool { return true; }
+            protected function run(string $command): array { $this->ran[] = $command; return [0, '']; }
+        };
+
+        $host = 'example.com';
+        // No vhost yet → no-op (ensureVhostCurrent never issues / creates).
+        $r0 = $acme->ensureVhostCurrent($host);
+        $this->assertFalse($r0['changed']);
+        $this->assertCount(0, $acme->ran);
+
+        // A stale vhost (old template without the deny rules) gets rewritten + reloaded.
+        file_put_contents($acme->vhostFile($host), "server { listen 443 ssl; server_name {$host}; }\n");
+        $r1 = $acme->ensureVhostCurrent($host);
+        $this->assertTrue($r1['changed']);
+        $this->assertCount(1, $acme->ran);
+        $this->assertStringContainsString('location ^~ /admin { return 404; }', (string)file_get_contents($acme->vhostFile($host)));
+
+        // Already-current vhost → no rewrite, no extra reload.
+        $r2 = $acme->ensureVhostCurrent($host);
+        $this->assertFalse($r2['changed']);
+        $this->assertCount(1, $acme->ran);
+
+        @unlink($acme->vhostFile($host));
+        @rmdir($dir);
+    }
+
     public function testCloudflareUniversalSslRequestBuilders(): void
     {
         $get = CloudflareClient::buildGetUniversalSslRequest('tok', 'zone123');
