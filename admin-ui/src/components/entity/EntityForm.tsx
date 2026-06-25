@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Input, Textarea, Select, FormRow } from '@/components/ui/Field';
 import { entityApi } from '@/lib/api';
+import { PermissionMatrix } from './PermissionMatrix';
 import type { EntityRecord, SchemaField } from '@/lib/types';
 
 export type FieldValues = Record<string, string | boolean>;
@@ -15,6 +16,7 @@ function initialValue(field: SchemaField, record: EntityRecord | null): string |
     case 'checkbox':
       return Boolean(v);
     case 'csv':
+    case 'permissions':
       return Array.isArray(v) ? v.join(', ') : typeof v === 'string' ? v : '';
     case 'kvlines':
       return v && typeof v === 'object'
@@ -145,6 +147,9 @@ export function EntityForm({
         )}
         {f.type === 'entityref' && (
           <EntityRefSelect field={f} value={String(val)} onChange={(v) => set(f.key, v)} />
+        )}
+        {f.type === 'permissions' && (
+          <PermissionMatrix value={String(val)} onChange={(v) => set(f.key, v)} />
         )}
         {f.type === 'password' && (
           <Input

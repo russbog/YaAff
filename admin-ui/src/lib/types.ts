@@ -70,6 +70,13 @@ export interface BootstrapResponse {
   groupByDims?: GroupByDim[];
   trafficBackUrl: string;
   geoBases?: GeoBasesInfo;
+  permissionResources?: PermissionResource[];
+}
+
+/** A resource that can be granted view/manage permissions (RBAC matrix). */
+export interface PermissionResource {
+  key: string;
+  label: string;
 }
 
 /** A grouping dimension offered by the custom report builder. */
