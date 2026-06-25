@@ -103,6 +103,28 @@ class ExtendedFilterTest extends TestCase
         $this->assertFalse($c->click_matches_filters($f));
     }
 
+    public function testSubIdAndUtmFiltersResolveFromQueryString(): void
+    {
+        // Every sub_id_1..30 / utm_* filter id newly exposed in the UI must
+        // resolve through the generic query-string fallback.
+        $c = $this->core(['qs' => [
+            'sub_id_5' => 'adset_42',
+            'sub_id_30' => 'last',
+            'utm_source' => 'facebook',
+            'utm_campaign' => 'summer_sale',
+        ]]);
+        $f = $this->filters('AND', [
+            ['id' => 'sub_id_5', 'operator' => 'in', 'value' => 'adset_42'],
+            ['id' => 'sub_id_30', 'operator' => 'equal', 'value' => 'last'],
+            ['id' => 'utm_source', 'operator' => 'in', 'value' => 'facebook,google'],
+            ['id' => 'utm_campaign', 'operator' => 'contains', 'value' => 'sale'],
+        ]);
+        $this->assertTrue($c->click_matches_filters($f));
+
+        $miss = $this->filters('AND', [['id' => 'sub_id_5', 'operator' => 'not_in', 'value' => 'adset_42']]);
+        $this->assertFalse($c->click_matches_filters($miss));
+    }
+
     public function testBotFilter(): void
     {
         $bot = $this->core(['bot' => 1]);
