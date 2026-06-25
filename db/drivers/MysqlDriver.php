@@ -219,6 +219,22 @@ class MysqlDriver implements DbDriver
         return "DATE_FORMAT(CONVERT_TZ(FROM_UNIXTIME($column), '+00:00', '$tzOffset'), '%Y-%m-%d')";
     }
 
+    public function dateBucket(string $column, string $tzOffset, string $granularity): string
+    {
+        $local = "CONVERT_TZ(FROM_UNIXTIME($column), '+00:00', '$tzOffset')";
+        switch ($granularity) {
+            case 'hour':
+                return "DATE_FORMAT($local, '%Y-%m-%d %H:00')";
+            case 'week':
+                return "DATE_FORMAT($local, '%x-W%v')";
+            case 'month':
+                return "DATE_FORMAT($local, '%Y-%m')";
+            case 'day':
+            default:
+                return "DATE_FORMAT($local, '%Y-%m-%d')";
+        }
+    }
+
     public function insertIgnoreInto(): string
     {
         return 'INSERT IGNORE INTO';

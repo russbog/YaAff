@@ -120,6 +120,8 @@ export const spa = {
       start: p.start,
       end: p.end,
     }),
+  trends: (p: { campId: number; start?: number; end?: number; granularity: import('./types').TrendGranularity }) =>
+    apiGet<import('./types').TrendsResponse>('spa.php', { r: 'trends', ...p }),
   clicks: (p: import('./types').ClicksQuery) =>
     apiGet<import('./types').ClicksResponse>('spa.php', { r: 'clicks', ...p }),
   conversions: (p: { campId?: number; limit?: number }) =>

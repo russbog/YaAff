@@ -107,4 +107,35 @@ class DashboardQueryTest extends TestCase
         $this->assertSame(3, $totalClicks);
         $this->assertSame(2, $totalConvs);
     }
+
+    public function testMetricsTimeseriesDerivesKpisPerBucket(): void
+    {
+        $q = new DashboardQuery($this->driver);
+        $series = $q->metricsTimeseries(1, 1699999999, 1700001000, '+00:00', 'day');
+        $this->assertNotEmpty($series);
+
+        // All clicks/conversions fall in one day bucket here.
+        $bucket = $series[0];
+        $this->assertSame(3, $bucket['clicks']);
+        $this->assertSame(2, $bucket['uniques']);
+        $this->assertSame(2, $bucket['conversions']);
+        $this->assertSame(30.0, $bucket['revenue']);
+        $this->assertSame(3.0, $bucket['cost']);
+        $this->assertSame(27.0, $bucket['profit']);
+        // roi = profit/cost*100 = 900; cr = conv/clicks*100 ≈ 66.67
+        $this->assertSame(900.0, $bucket['roi']);
+        $this->assertEqualsWithDelta(66.67, $bucket['cr'], 0.01);
+        $this->assertArrayHasKey('bucket', $bucket);
+    }
+
+    public function testMetricsTimeseriesHourGranularityIsFinerThanDay(): void
+    {
+        $q = new DashboardQuery($this->driver);
+        // Two clicks 2 hours apart should land in distinct hour buckets.
+        $this->click(1, 1700100000, 'h1', 'US', 'flowA', 0.0);
+        $this->click(1, 1700107200, 'h2', 'US', 'flowA', 0.0);
+        $hourly = $q->metricsTimeseries(1, 1700099000, 1700110000, '+00:00', 'hour');
+        $daily = $q->metricsTimeseries(1, 1700099000, 1700110000, '+00:00', 'day');
+        $this->assertGreaterThan(count($daily), count($hourly));
+    }
 }
