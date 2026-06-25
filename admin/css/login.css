@@ -1,344 +1,306 @@
-/* YaAff — Login */
+/*
+ * YaAff — Login
+ * Styled to match the admin SPA design system (admin-ui/src/styles/tokens.css).
+ * Tokens are mirrored here as CSS variables so the standalone (pre-auth) login
+ * page shares the exact same surfaces, borders, radii, brand color and type as
+ * the React shell. Theme follows the SPA: read from localStorage('yaaff-theme')
+ * and applied as a `light`/`dark` class on <html> (see login.php head script).
+ */
+
+:root {
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 7px;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.04);
+  --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.45);
+
+  --brand: 59 130 246;
+  --brand-fg: 255 255 255;
+}
+
+/* Light theme */
+:root,
+html.light {
+  --bg: 247 248 250;
+  --surface: 255 255 255;
+  --surface-2: 248 250 252;
+  --elevated: 255 255 255;
+  --border: 226 232 240;
+  --border-strong: 203 213 225;
+  --fg: 15 23 42;
+  --muted: 100 116 139;
+  --faint: 148 163 184;
+  --danger: 239 68 68;
+}
+
+/* Dark theme (default) */
+html.dark {
+  --bg: 9 13 22;
+  --surface: 17 24 38;
+  --surface-2: 22 31 48;
+  --elevated: 27 37 57;
+  --border: 34 46 70;
+  --border-strong: 51 65 95;
+  --fg: 226 232 240;
+  --muted: 148 163 184;
+  --faint: 100 116 139;
+  --brand: 96 165 250;
+  --danger: 248 113 113;
+}
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Inter, "Roboto", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-    position: relative;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at 18% 10%, rgba(124, 58, 237, 0.34), transparent 32%),
-        radial-gradient(circle at 82% 4%, rgba(20, 184, 166, 0.22), transparent 30%),
-        linear-gradient(135deg, #07111f 0%, #0b1220 46%, #101827 100%);
-    color: #e5eefc;
-}
-
-body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background-image:
-        linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
-    background-size: 42px 42px;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.78), transparent 78%);
-    pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(60rem 60rem at 15% -10%, rgb(var(--brand) / 0.10), transparent 60%),
+    radial-gradient(50rem 50rem at 100% 0%, rgb(var(--brand) / 0.06), transparent 55%),
+    rgb(var(--bg));
+  color: rgb(var(--fg));
+  -webkit-font-smoothing: antialiased;
 }
 
 #main {
-    width: 100%;
-    max-width: 480px;
-    padding: 20px;
-    position: relative;
-    z-index: 2;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  position: relative;
+  z-index: 2;
 }
 
-#title {
-    margin-bottom: 30px;
-    text-align: center;
-}
-
-#title img {
-    max-width: 300px;
-    height: auto;
-}
-
-/* Brand block */
+/* Brand block — mirrors the SPA sidebar wordmark */
 .yaaff-login-brand {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 22px;
 }
 
 .yaaff-login-mark {
-    display: grid;
-    width: 64px;
-    height: 64px;
-    place-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 22px;
-    background: linear-gradient(135deg, #7c3aed, #2563eb 58%, #14b8a6);
-    box-shadow: 0 22px 54px rgba(37, 99, 235, 0.34);
-    color: #fff;
-    font-size: 34px;
-    font-weight: 900;
-    letter-spacing: -0.08em;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: rgb(var(--brand));
+  color: rgb(var(--brand-fg));
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .yaaff-login-name {
-    color: #fff;
-    font-size: 42px;
-    font-weight: 900;
-    letter-spacing: -0.07em;
-    line-height: 1;
+  color: rgb(var(--fg));
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .yaaff-login-subtitle {
-    margin-top: 7px;
-    color: #94a3b8;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+  margin-top: 2px;
+  color: rgb(var(--faint));
+  font-size: 11px;
+  font-weight: 500;
 }
 
-/* Container */
+/* Card */
 .login-container {
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 28px;
-    background: rgba(15, 23, 42, 0.78);
-    backdrop-filter: blur(22px);
-    box-shadow: 0 28px 80px rgba(2, 8, 23, 0.52);
-    padding: 40px;
-    position: relative;
-}
-
-.login-container::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    border-radius: 28px 28px 0 0;
-    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.8), rgba(20, 184, 166, 0.75), transparent);
-    animation: scan 3s ease-in-out infinite;
-}
-
-@keyframes scan {
-    0%   { transform: translateY(-100%); opacity: 0.6; }
-    50%  { opacity: 1; }
-    100% { transform: translateY(470px); opacity: 0; }
+  border: 1px solid rgb(var(--border));
+  border-radius: var(--radius-lg);
+  background: rgb(var(--surface));
+  box-shadow: var(--shadow-pop);
+  padding: 28px;
 }
 
 .login-container h2 {
-    margin-bottom: 26px;
-    color: #f8fafc;
-    font-size: 28px;
-    letter-spacing: -0.04em;
-    text-align: center;
-    font-weight: 600;
+  margin-bottom: 4px;
+  color: rgb(var(--fg));
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+.login-subtext {
+  margin-bottom: 22px;
+  color: rgb(var(--muted));
+  font-size: 13px;
 }
 
 /* Form */
 #login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 label {
-    color: #94a3b8;
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+  color: rgb(var(--muted));
+  font-size: 12px;
+  font-weight: 500;
 }
 
 input {
-    width: 100%;
-    padding: 15px;
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    border-radius: 16px;
-    background: rgba(2, 8, 23, 0.56);
-    font-size: 16px;
-    color: #e5eefc;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgb(var(--border));
+  border-radius: var(--radius-md);
+  background: rgb(var(--surface-2));
+  font-size: 14px;
+  color: rgb(var(--fg));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 input:focus {
-    outline: none;
-    border-color: rgba(125, 211, 252, 0.58);
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18);
+  outline: none;
+  border-color: rgb(var(--brand));
+  box-shadow: 0 0 0 3px rgb(var(--brand) / 0.3);
 }
 
 input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+  color: rgb(var(--faint));
 }
 
-/* Password field */
-.password-container {
-    position: relative;
-    width: 100%;
+/* Inline error banner (replaces alert()) */
+.login-error {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgb(var(--danger) / 0.4);
+  border-radius: var(--radius-md);
+  background: rgb(var(--danger) / 0.12);
+  color: rgb(var(--danger));
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.password-container input {
-    opacity: 0;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    cursor: text;
-    z-index: 2;
+.login-error.show {
+  display: flex;
 }
 
-.fake-input-container {
-    width: 100%;
-    padding: 15px;
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    border-radius: 16px;
-    background: rgba(2, 8, 23, 0.56);
-    font-size: 16px;
-    color: #8be9fd;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 2px;
-    min-height: 52px;
-    display: flex;
-    align-items: center;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.password-container:focus-within .fake-input-container {
-    border-color: rgba(125, 211, 252, 0.58);
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.18);
-}
-
-#fake-input {
-    color: #8be9fd;
-    text-shadow: 0 0 5px rgba(139, 233, 253, 0.3);
-}
-
-#cursor {
-    color: #8be9fd;
-    margin-left: 1px;
-    font-weight: bold;
-    transition: opacity 0.1s ease;
-}
-
-/* Button */
+/* Primary button — matches SPA Button variant="primary" */
 .login-button,
 button[type="submit"] {
-    position: relative;
-    overflow: hidden;
-    border: 0;
-    border-radius: 999px;
-    padding: 15px;
-    background: linear-gradient(135deg, #7c3aed, #2563eb 62%, #14b8a6);
-    color: #fff;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-    box-shadow: 0 18px 44px rgba(37, 99, 235, 0.34);
-    transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: rgb(var(--brand));
+  color: rgb(var(--brand-fg));
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: filter 0.1s ease;
 }
 
 .login-button:hover,
 button[type="submit"]:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.07);
-    box-shadow: 0 22px 56px rgba(37, 99, 235, 0.42);
+  filter: brightness(1.1);
 }
 
 .login-button:active,
 button[type="submit"]:active {
-    transform: translateY(0);
+  filter: brightness(0.95);
 }
 
 .login-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.login-button::before,
-button[type="submit"]::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    left: -120%;
-    width: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.24), transparent);
-    transition: left 0.5s ease;
-}
-
-.login-button:hover::before,
-button[type="submit"]:hover::before {
-    left: 120%;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Loading state */
 .loading-img {
-    display: none;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 24px;
-    height: 24px;
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
 }
 
 button.loading .loading-img {
-    display: block;
+  display: block;
 }
 
 button.loading span {
-    visibility: hidden;
+  visibility: hidden;
 }
 
-/* Version info */
+/* Version / diagnostics */
 .version-info {
-    margin-top: 30px;
-    text-align: center;
-    font-size: 14px;
-    color: #64748b;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    padding: 15px;
+  margin-top: 22px;
+  font-size: 12px;
+  color: rgb(var(--muted));
+  background: rgb(var(--surface-2));
+  border: 1px solid rgb(var(--border));
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
 }
 
 .version-grid {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    margin: 0 auto;
-    max-width: 500px;
+  display: flex;
+  gap: 24px;
 }
 
 .version-column {
-    flex: 1;
+  flex: 1;
 }
 
 .version-item {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.version-item:last-child {
+  margin-bottom: 0;
 }
 
 .version-label {
-    color: rgba(255, 255, 255, 0.5);
-    font-weight: 500;
+  color: rgb(var(--faint));
+  font-weight: 500;
 }
 
 .version-value {
-    color: rgba(255, 255, 255, 0.9);
-    text-align: right;
+  color: rgb(var(--fg));
+  text-align: right;
 }
 
 .version-value .error {
-    color: #ff6b6b;
-    font-weight: 500;
+  color: rgb(var(--danger));
+  font-weight: 600;
 }
 
 #version {
-    font-size: 14px;
+  font-size: 12px;
+}
+
+@media (max-width: 440px) {
+  .version-grid {
+    flex-direction: column;
+    gap: 5px;
+  }
 }
