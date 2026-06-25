@@ -133,6 +133,7 @@ export const spa = {
     apiSend<{ ok: true; settings: Record<string, unknown> }>('spa.php', 'POST', patch, {
       r: 'common-settings',
     }),
+  status: () => apiGet<import('./types').StatusResponse>('spa.php', { r: 'status' }),
 };
 
 // --- System maintenance (app auto-update / geobase update / timezone) -------

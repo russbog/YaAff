@@ -71,6 +71,98 @@ function spa_geobases(): array
 }
 
 /**
+ * Live system-health checks for the Status panel. Each check is synchronous and
+ * cheap; status is one of 'ok' | 'warn' | 'error'.
+ *
+ * @return array<int,array{key:string,label:string,status:string,value:string,detail?:string}>
+ */
+function spa_status_checks($db): array
+{
+    $checks = [];
+
+    // PHP runtime — warn below the supported floor.
+    $php = PHP_VERSION;
+    $checks[] = [
+        'key'    => 'php',
+        'label'  => 'PHP runtime',
+        'status' => version_compare($php, '8.1', '>=') ? 'ok' : 'warn',
+        'value'  => $php,
+        'detail' => version_compare($php, '8.1', '>=') ? null : 'PHP 8.1+ recommended',
+    ];
+
+    // App version.
+    $checks[] = [
+        'key'    => 'app',
+        'label'  => 'Application version',
+        'status' => 'ok',
+        'value'  => trim((string)@file_get_contents(__DIR__ . '/version.txt')) ?: 'unknown',
+    ];
+
+    // Storage data driver.
+    try {
+        $driverName = $db->driver()->name();
+        $checks[] = ['key' => 'driver', 'label' => 'Data storage', 'status' => 'ok', 'value' => $driverName];
+    } catch (Throwable $e) {
+        $checks[] = ['key' => 'driver', 'label' => 'Data storage', 'status' => 'error', 'value' => 'unavailable', 'detail' => $e->getMessage()];
+    }
+
+    // Filesystem writability (auto-update needs to replace files in place).
+    $writable = is_writable(__DIR__) && is_writable(__DIR__ . '/version.txt');
+    $checks[] = [
+        'key'    => 'storage',
+        'label'  => 'Filesystem writable',
+        'status' => $writable ? 'ok' : 'warn',
+        'value'  => $writable ? 'Writable' : 'Read-only',
+        'detail' => $writable ? null : 'In-app updates require write access to admin/',
+    ];
+
+    // GeoIP databases.
+    $geo = spa_geobases();
+    $checks[] = [
+        'key'    => 'geoip',
+        'label'  => 'GeoIP databases',
+        'status' => empty($geo['missing']) ? 'ok' : 'warn',
+        'value'  => empty($geo['missing']) ? ($geo['version'] ?: 'Installed') : 'Missing',
+        'detail' => empty($geo['missing']) ? null : 'Missing: ' . implode(', ', $geo['missing']),
+    ];
+
+    // Log retention policy.
+    try {
+        $gs = $db->get_common_settings();
+        $days = (int)($gs['retentionDays'] ?? 0);
+        $checks[] = [
+            'key'    => 'retention',
+            'label'  => 'Log retention',
+            'status' => 'ok',
+            'value'  => $days > 0 ? $days . ' days' : 'Unlimited',
+        ];
+    } catch (Throwable $e) {
+        // Non-fatal: skip if settings are unreadable.
+    }
+
+    // Free disk space — warn under 1 GB.
+    $free = @disk_free_space(__DIR__);
+    if ($free !== false) {
+        $gb = $free / (1024 ** 3);
+        $checks[] = [
+            'key'    => 'disk',
+            'label'  => 'Free disk space',
+            'status' => $gb >= 1 ? 'ok' : 'warn',
+            'value'  => sprintf('%.1f GB', $gb),
+            'detail' => $gb >= 1 ? null : 'Low disk space may stall traffic logging',
+        ];
+    }
+
+    // Drop null details so the JSON stays tidy.
+    return array_map(static function (array $c): array {
+        if (array_key_exists('detail', $c) && $c['detail'] === null) {
+            unset($c['detail']);
+        }
+        return $c;
+    }, $checks);
+}
+
+/**
  * Catalog of statistic columns offered across the SPA (campaigns grid, reports,
  * column picker). Each entry carries display metadata so the front-end can group,
  * describe and format columns consistently:
@@ -460,6 +552,11 @@ try {
             }
             $db->set_common_settings($merged);
             spa_respond(['settings' => $merged]);
+        }
+
+        case 'status': {
+            auth_require('data.view', true);
+            spa_respond(['checks' => spa_status_checks($db)]);
         }
 
         default:

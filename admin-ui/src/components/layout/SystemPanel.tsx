@@ -1,15 +1,52 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Settings2, CloudDownload, Database, Clock, RefreshCw } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Settings2, CloudDownload, Database, Clock, RefreshCw, Activity, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/providers/ToastProvider';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
-import { useBootstrap } from '@/providers/BootstrapProvider';
-import { systemApi, APP_VERSION } from '@/lib/api';
-import type { TimezoneOption } from '@/lib/types';
+import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
+import { spa, systemApi, APP_VERSION } from '@/lib/api';
+import type { StatusCheck, TimezoneOption } from '@/lib/types';
+
+const STATUS_ICON = {
+  ok: <CheckCircle2 size={15} className="text-success" />,
+  warn: <AlertTriangle size={15} className="text-warning" />,
+  error: <XCircle size={15} className="text-danger" />,
+} as const;
+
+function StatusSection({ open }: { open: boolean }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['system-status'],
+    queryFn: spa.status,
+    enabled: open,
+    staleTime: 15_000,
+  });
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <Activity size={16} className="text-brand" />
+        System status
+      </div>
+      <div className="rounded-md border border-border bg-surface-2/40 divide-y divide-border/60">
+        {isLoading && <div className="px-3 py-2.5 text-xs text-faint">Checking…</div>}
+        {isError && <div className="px-3 py-2.5 text-xs text-danger">Status unavailable</div>}
+        {(data?.checks ?? []).map((c: StatusCheck) => (
+          <div key={c.key} className="flex items-center gap-2.5 px-3 py-2">
+            {STATUS_ICON[c.status]}
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-medium">{c.label}</div>
+              {c.detail && <div className="text-2xs text-faint truncate">{c.detail}</div>}
+            </div>
+            <span className="text-2xs text-muted font-mono">{c.value}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function tzOptions(
   timezones: TimezoneOption[] | Record<string, string>,
@@ -21,6 +58,7 @@ function tzOptions(
 export function SystemPanel() {
   const [open, setOpen] = useState(false);
   const { geoBases, timezones, commonSettings, version } = useBootstrap();
+  const can = useCan();
   const toast = useToast();
   const confirm = useConfirm();
   const qc = useQueryClient();
@@ -163,6 +201,8 @@ export function SystemPanel() {
               </Button>
             </div>
           </section>
+
+          {can('data.view') && <StatusSection open={open} />}
         </div>
       </Modal>
     </>
