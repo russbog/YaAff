@@ -118,6 +118,15 @@ function load_step(Campaign $c, FlowSettings $flow, int $stepIndex, string $fold
     $userid = $click['userid'] ?? null;
     $mp = new MacrosProcessor($c, null, $clickid, $userid);
 
+    // Landing + Offer: a page step may carry a resolved offer redirect URL
+    // (FlowEntityResolver places the step's chosen offer into redirectUrls).
+    // The landing's {offer}/{next} CTA then points straight at that offer,
+    // independent of whether it is the last step.
+    $stepOfferUrl = '';
+    if (!empty($step->redirectUrls)) {
+        $stepOfferUrl = $mp->replace_url_macros($step->redirectUrls[0]['url'] ?? '');
+    }
+
     if ($isLastStep) {
         $html = preg_replace_callback(
             '/\saction=[\'\"]([^\'\"]+)[\'\"]/',
@@ -143,6 +152,11 @@ function load_step(Campaign $c, FlowSettings $flow, int $stepIndex, string $fold
         }
 
         $html = insert_file_content($html, 'fixanchors.js', '<body', false, true);
+
+        if ($stepOfferUrl !== '') {
+            $html = preg_replace('/\{offer\}/', $stepOfferUrl, $html);
+            $html = preg_replace('/\{next\}/', $stepOfferUrl, $html);
+        }
     } else {
         $html = preg_replace('/(<a[^>]+)(target="_blank")/i', "\\1", $html);
 
@@ -162,7 +176,7 @@ function load_step(Campaign $c, FlowSettings $flow, int $stepIndex, string $fold
         }
 
         $html = preg_replace('/\{next\}/', $replacement, $html);
-        $html = preg_replace('/\{offer\}/', $replacement, $html);
+        $html = preg_replace('/\{offer\}/', $stepOfferUrl !== '' ? $stepOfferUrl : $replacement, $html);
 
         if ($c->scripts->backfix) {
             $urls = array_map(fn($u) => $mp->replace_url_macros($u), $c->scripts->backfixUrls);

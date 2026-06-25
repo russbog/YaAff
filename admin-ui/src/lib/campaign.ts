@@ -65,7 +65,16 @@ export interface RedirectEntry {
 
 export interface Step {
   action: StepAction;
+  /** Legacy raw folder names (back-compat editing of pre-catalog steps). */
   folders: string[];
+  /** Local landing ids (catalog) served as prelander pages (action='folder'). */
+  landings: number[];
+  /**
+   * Offer ids (catalog). In Offer mode (action='redirect') these are the A/B
+   * redirect targets; in Landing mode (action='folder') the first is the offer
+   * the landing's {offer} CTA links to.
+   */
+  offers: number[];
   redirect: { urls: RedirectEntry[]; type: StepRedirectType };
   weights: number[];
   folderloadtypes: Record<string, 'base' | 'direct'>;
@@ -273,6 +282,8 @@ function normStep(v: unknown): Step {
   return {
     action,
     folders: asArray(o.folders).map((x) => asStr(x)).filter(Boolean),
+    landings: asArray(o.landings).map((x) => asInt(x, 0)).filter((n) => n > 0),
+    offers: asArray(o.offers).map((x) => asInt(x, 0)).filter((n) => n > 0),
     redirect: { urls, type: normStepRedirectType(redirect.type) },
     weights: asArray(o.weights).map((x) => asInt(x, 0)),
     folderloadtypes,
@@ -487,10 +498,25 @@ function serializeFlow(f: Flow): Record<string, unknown> {
 
 function serializeStep(s: Step): Record<string, unknown> {
   if (s.action === 'redirect') {
+    // Offer mode: A/B split across catalog offers (resolved to redirect URLs).
+    if (s.offers.length > 0) {
+      return {
+        action: 'redirect',
+        folders: [],
+        landings: [],
+        offers: s.offers,
+        redirect: { urls: [], type: s.redirect.type },
+        weights: s.offers.map((_, i) => s.weights[i] ?? 0),
+        folderloadtypes: {},
+      };
+    }
+    // Direct URL mode: raw redirect targets typed inline.
     const urls = s.redirect.urls.filter((u) => u.url.trim());
     return {
       action: 'redirect',
       folders: [],
+      landings: [],
+      offers: [],
       redirect: {
         urls: urls.map((u) => ({ url: u.url.trim(), label: hostOf(u.url) })),
         type: s.redirect.type,
@@ -499,14 +525,21 @@ function serializeStep(s: Step): Record<string, unknown> {
       folderloadtypes: {},
     };
   }
+  // Landing mode: A/B across catalog landings (+ any legacy folders), with an
+  // optional bound offer the landing's {offer} CTA links to. Weights are
+  // positional over the runtime item list, which FlowEntityResolver builds as
+  // legacy folders first, then resolved landing folders (in landings[] order).
   const folders = s.folders.filter(Boolean);
   const folderloadtypes: Record<string, 'base' | 'direct'> = {};
   for (const f of folders) folderloadtypes[f] = s.folderloadtypes[f] ?? 'base';
+  const itemCount = folders.length + s.landings.length;
   return {
     action: 'folder',
     folders,
+    landings: s.landings,
+    offers: s.offers,
     redirect: { urls: [], type: 302 },
-    weights: folders.map((_, i) => s.weights[i] ?? 0),
+    weights: Array.from({ length: itemCount }, (_, i) => s.weights[i] ?? 0),
     folderloadtypes,
   };
 }
@@ -535,7 +568,9 @@ export function newStep(action: StepAction): Step {
   return {
     action,
     folders: [],
-    redirect: { urls: [], type: action === 'redirect' ? 302 : 302 },
+    landings: [],
+    offers: [],
+    redirect: { urls: [], type: 302 },
     weights: [],
     folderloadtypes: {},
   };
@@ -555,5 +590,9 @@ export function newDomainWhite(domain: string): DomainWhite {
 
 export function flowHasMultipleSteps(f: Flow): boolean {
   if (f.steps.length > 1) return true;
-  return f.steps.some((s) => (s.action === 'redirect' ? s.redirect.urls.length : s.folders.length) > 1);
+  return f.steps.some((s) =>
+    (s.action === 'redirect'
+      ? Math.max(s.offers.length, s.redirect.urls.length)
+      : s.folders.length + s.landings.length) > 1,
+  );
 }
