@@ -9,7 +9,6 @@ import {
   Trash2,
   Search,
   FolderOpen,
-  UploadCloud,
   Globe,
   RefreshCw,
   Wrench,
@@ -25,13 +24,13 @@ import { DataTable } from '@/components/data/DataTable';
 import { EntityForm, type FieldValues } from '@/components/entity/EntityForm';
 import { DomainForm } from '@/components/domains/DomainForm';
 import { FileManager } from '@/components/files/FileManager';
-import { ZipUploadModal } from '@/components/files/ZipUploadModal';
+import { LandingForm } from '@/components/landings/LandingForm';
 import { DomainToolsModal } from '@/components/domains/DomainToolsModal';
 import { DomainStatusBadge } from '@/components/domains/DomainStatusBadge';
 import { useToast } from '@/providers/ToastProvider';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
-import { entityApi, domainStatusApi, type DomainStatusMap } from '@/lib/api';
+import { entityApi, folderApi, domainStatusApi, type DomainStatusMap } from '@/lib/api';
 import { fmtDateTime } from '@/lib/format';
 import type { EntityRecord } from '@/lib/types';
 
@@ -46,10 +45,11 @@ export function EntityPage({ type }: { type: string }) {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<EntityRecord | null | undefined>(undefined); // undefined = closed
   const valuesRef = useRef<FieldValues>({});
+  const landingFileRef = useRef<File | null>(null);
+  const [landingBusy, setLandingBusy] = useState(false);
   const isLandings = type === 'landings';
   const isDomains = type === 'domains';
   const [filesFolder, setFilesFolder] = useState<string | null>(null);
-  const [zipOpen, setZipOpen] = useState(false);
   const [domainTools, setDomainTools] = useState<EntityRecord | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -287,7 +287,60 @@ export function EntityPage({ type }: { type: string }) {
     );
   }
 
+  // Landings: a local landing's files live in a folder named after its numeric
+  // id. We create the record first (to mint the id), extract the ZIP into a
+  // folder of that id, then point the record's path at it. On upload failure
+  // the just-created record is rolled back so no empty landing is left behind.
+  const submitLanding = async () => {
+    const body: Record<string, unknown> = { ...valuesRef.current };
+    const file = landingFileRef.current;
+    const isRemote = String(body.type ?? 'local') === 'remote';
+    setLandingBusy(true);
+    try {
+      if (editing) {
+        const existingPath = String((editing.settings as { path?: string } | undefined)?.path ?? '');
+        const folder = existingPath || String(editing.id);
+        body.id = editing.id;
+        if (!isRemote) body.path = folder;
+        await entityApi.save(type, body);
+        if (!isRemote && file) {
+          const r = await folderApi.uploadZip(folder, file, 'landing', true);
+          if (r.error) throw new Error(r.result || 'Upload failed');
+        }
+      } else {
+        if (!isRemote && !file) {
+          toast.error('Choose a .zip archive');
+          setLandingBusy(false);
+          return;
+        }
+        const { id } = await entityApi.save(type, isRemote ? body : { ...body, path: '' });
+        if (!isRemote && file) {
+          try {
+            const r = await folderApi.uploadZip(String(id), file, 'landing', false);
+            if (r.error) throw new Error(r.result || 'Upload failed');
+          } catch (e) {
+            await entityApi.remove(type, id).catch(() => undefined);
+            throw e;
+          }
+          await entityApi.save(type, { ...body, id, path: String(id) });
+        }
+      }
+      toast.success(`${schema?.singular ?? 'Landing'} saved`);
+      landingFileRef.current = null;
+      setEditing(undefined);
+      invalidate();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setLandingBusy(false);
+    }
+  };
+
   const submit = () => {
+    if (isLandings) {
+      void submitLanding();
+      return;
+    }
     const body: Record<string, unknown> = { ...valuesRef.current };
     if (editing) {
       body.id = editing.id;
@@ -319,11 +372,6 @@ export function EntityPage({ type }: { type: string }) {
       toolbar={
         canManage && (
           <div className="flex items-center gap-2">
-            {isLandings && (
-              <Button variant="secondary" size="sm" onClick={() => setZipOpen(true)}>
-                <UploadCloud size={15} /> Upload ZIP
-              </Button>
-            )}
             {isDomains && (
               <Button
                 variant="secondary"
@@ -390,7 +438,7 @@ export function EntityPage({ type }: { type: string }) {
             </Button>
             <Button
               variant="primary"
-              loading={saveMut.isPending || bulkSaveMut.isPending}
+              loading={saveMut.isPending || bulkSaveMut.isPending || landingBusy}
               onClick={submit}
               disabled={!canManage}
             >
@@ -402,6 +450,13 @@ export function EntityPage({ type }: { type: string }) {
         {editing !== undefined &&
           (isDomains ? (
             <DomainForm record={editing ?? null} onValuesChange={(v) => (valuesRef.current = v)} />
+          ) : isLandings ? (
+            <LandingForm
+              fields={schema.fields}
+              record={editing ?? null}
+              onValuesChange={(v) => (valuesRef.current = v)}
+              onFileChange={(f) => (landingFileRef.current = f)}
+            />
           ) : (
             <EntityForm
               fields={schema.fields}
@@ -411,16 +466,6 @@ export function EntityPage({ type }: { type: string }) {
           ))}
       </Modal>
 
-      {isLandings && (
-        <ZipUploadModal
-          open={zipOpen}
-          onClose={() => setZipOpen(false)}
-          onUploaded={(folder) => {
-            setZipOpen(false);
-            setFilesFolder(folder);
-          }}
-        />
-      )}
       {filesFolder && (
         <FileManager folder={filesFolder} onClose={() => setFilesFolder(null)} />
       )}

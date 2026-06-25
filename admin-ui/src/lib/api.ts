@@ -385,10 +385,11 @@ export type FolderType = 'landing' | 'white';
 export const folderApi = {
   list: (type: FolderType = 'landing') =>
     apiGet<{ error: boolean; folders: string[] }>('listfolders.php', { type }),
-  uploadZip: (folder: string, file: File, type: FolderType = 'landing') => {
+  uploadZip: (folder: string, file: File, type: FolderType = 'landing', overwrite = false) => {
     const fd = new FormData();
     fd.append('folder', folder);
     fd.append('type', type);
+    if (overwrite) fd.append('overwrite', '1');
     fd.append('zipfile', file);
     return filePost<{ error?: boolean; result?: string }>('zipupload.php', fd);
   },
