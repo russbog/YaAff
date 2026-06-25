@@ -44,6 +44,7 @@ function entity_schemas(): array
 
     $currencyOptions = currency_options();
     // Tokens substituted live in offer / landing destination URLs (shared TokenRegistry vocabulary).
+    // Any param passed to the campaign link is also available by its bare name, e.g. {utm_term}.
     $urlTokens = ['{clickid}', '{sub_id_1}', '{c.utm_source}', '{country}', '{device}', '{os}', '{userid}'];
     // Tokens substituted live in outgoing S2S postbacks and Conversion API templates.
     $postbackTokens = ['{clickid}', '{status}', '{payout}', '{revenue}', '{currency}', '{sub_id_1}', '{c.utm_source}', '{country}'];
@@ -59,7 +60,7 @@ function entity_schemas(): array
                 ['key' => 'currency', 'label' => 'Default currency', 'type' => 'select', 'options' => $currencyOptions, 'default' => 'USD', 'help' => 'Currency payouts arrive in; converted to your reporting currency.'],
                 ['key' => 'postback_url', 'label' => 'Incoming postback URL', 'type' => 'text', 'section' => 'Postback integration', 'placeholder' => 'https://your-domain/api/postback.php?clickid=REPLACE&status=REPLACE&payout=REPLACE', 'help' => 'Template you hand to the network. The network must call back with clickid (the {subid} you passed them), status and payout. Optional: currency, revenue, tid.'],
                 ['key' => 'status_map', 'label' => 'Status mapping', 'type' => 'kvlines', 'section' => 'Postback integration', 'help' => 'One per line: external=internal. Internal: lead, sale, rejected, hold. Example: approved=sale'],
-                ['key' => 'offer_param', 'label' => 'Offer URL template', 'type' => 'text', 'section' => 'Postback integration', 'help' => 'Optional template used when building offer URLs for this network.', 'tokens' => $urlTokens],
+                ['key' => 'offer_param', 'label' => 'Offer URL template', 'type' => 'text', 'section' => 'Postback integration', 'help' => 'Optional template used when building offer URLs for this network. Any param passed to the campaign link is referenceable by name (e.g. {your_param}); unknown tokens are dropped to empty.', 'tokens' => $urlTokens],
                 ['key' => 'note', 'label' => 'Note', 'type' => 'textarea', 'section' => 'Advanced'],
             ],
         ],
@@ -88,7 +89,7 @@ function entity_schemas(): array
                 ['key' => 'network_id', 'label' => 'Network', 'type' => 'entityref', 'entity' => 'networks', 'help' => 'Links payout currency and postback handling.'],
                 ['key' => 'type', 'label' => 'Type', 'type' => 'select', 'options' => ['redirect' => 'Redirect (remote URL)', 'local' => 'Local landing'], 'default' => 'redirect'],
                 ['key' => 'geo', 'label' => 'Geo', 'type' => 'text', 'help' => 'Free-form geo note, e.g. US, CA.'],
-                ['key' => 'url', 'label' => 'Target URL', 'type' => 'text', 'section' => 'Destination', 'showIf' => ['field' => 'type', 'in' => ['redirect']], 'placeholder' => 'https://offer.com/?clickid={clickid}', 'help' => 'Where the click is sent. Tokens below are substituted live.', 'tokens' => $urlTokens],
+                ['key' => 'url', 'label' => 'Target URL', 'type' => 'text', 'section' => 'Destination', 'showIf' => ['field' => 'type', 'in' => ['redirect']], 'placeholder' => 'https://offer.com/{some_param}?clickid={clickid}', 'help' => 'Where the click is sent. Tokens (path and query) are substituted live: any param you pass to the campaign link is available by name (e.g. {some_param}), and unknown tokens are dropped to empty.', 'tokens' => $urlTokens],
                 ['key' => 'redirect_type', 'label' => 'Redirect type', 'type' => 'select', 'options' => $redirectTypes, 'default' => 'http_302', 'section' => 'Destination', 'showIf' => ['field' => 'type', 'in' => ['redirect']]],
                 ['key' => 'payout', 'label' => 'Payout', 'type' => 'number', 'default' => 0, 'section' => 'Payout'],
                 ['key' => 'payout_type', 'label' => 'Payout type', 'type' => 'select', 'options' => ['cpa' => 'CPA — per action', 'cpc' => 'CPC — per click', 'cpl' => 'CPL — per lead', 'revshare' => 'RevShare — % of revenue'], 'default' => 'cpa', 'section' => 'Payout'],

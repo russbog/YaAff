@@ -133,4 +133,62 @@ class TokenRegistryTest extends TestCase
         $this->assertSame('z', $r->resolve('sub1'));
         $this->assertTrue($loaded);
     }
+
+    public function testResolveBareCustomParamFallback(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => ['random_name' => 'rs']]);
+        $this->assertSame('rs', $r->resolve('random_name'));
+        $this->assertSame('rs', $r->resolve('c.random_name'));
+        $this->assertNull($r->resolve('not_a_param'));
+    }
+
+    public function testRenderUrlSubstitutesPathAndQuery(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => ['random_name' => 'random_string', 'parametr2' => 'this']]);
+        $this->assertSame(
+            'offer.com/random_string?to=this',
+            $r->renderUrl('offer.com/{random_name}?to={parametr2}')
+        );
+        $this->assertSame(
+            'https://offer.com/random_string?to=this',
+            $r->renderUrl('https://offer.com/{random_name}?to={parametr2}')
+        );
+    }
+
+    public function testRenderUrlMissingTokenCollapsesToEmpty(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => ['parametr2' => 'this']]);
+        $this->assertSame(
+            'offer.com/?to=this',
+            $r->renderUrl('offer.com/{random_name}?to={parametr2}')
+        );
+    }
+
+    public function testRenderUrlEncodesResolvedValues(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => ['p' => 'a b&c']]);
+        $this->assertSame('https://o.com/a%20b%26c', $r->renderUrl('https://o.com/{p}'));
+        $this->assertSame('https://o.com/?x=a+b%26c', $r->renderUrl('https://o.com/?x={p}'));
+    }
+
+    public function testRenderUrlSubstitutesEmbeddedTokenInValue(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => ['sid' => '42']]);
+        $this->assertSame('https://o.com/?u=pre42post', $r->renderUrl('https://o.com/?u=pre{sid}post'));
+    }
+
+    public function testRenderUrlWithoutTokensUnchanged(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'C']);
+        $this->assertSame('https://o.com/x?a=b', $r->renderUrl('https://o.com/x?a=b'));
+    }
+
+    public function testRenderUrlResolvesKnownTokens(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'CLK', 'country' => 'US']);
+        $this->assertSame(
+            'https://o.com/US?cid=CLK',
+            $r->renderUrl('https://o.com/{country}?cid={clickid}')
+        );
+    }
 }
