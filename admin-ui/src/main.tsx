@@ -8,6 +8,7 @@ import { ToastProvider } from './providers/ToastProvider';
 import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import { BootstrapProvider } from './providers/BootstrapProvider';
 import { RangeProvider } from './providers/RangeProvider';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import './styles/index.css';
 
 const queryClient = new QueryClient({
@@ -23,19 +24,21 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <ConfirmProvider>
-            <BootstrapProvider>
-              <RangeProvider>
-                <HashRouter>
-                  <App />
-                </HashRouter>
-              </RangeProvider>
-            </BootstrapProvider>
-          </ConfirmProvider>
-        </ToastProvider>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <ConfirmProvider>
+              <BootstrapProvider>
+                <RangeProvider>
+                  <HashRouter>
+                    <App />
+                  </HashRouter>
+                </RangeProvider>
+              </BootstrapProvider>
+            </ConfirmProvider>
+          </ToastProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </ThemeProvider>
   </StrictMode>,
 );
