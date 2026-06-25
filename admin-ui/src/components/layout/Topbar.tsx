@@ -17,7 +17,7 @@ export function Topbar({
   children?: React.ReactNode;
 }) {
   const { theme, toggle } = useTheme();
-  const { user } = useBootstrap();
+  const { user, version } = useBootstrap();
   const qc = useQueryClient();
 
   return (
@@ -47,7 +47,7 @@ export function Topbar({
               {user.name} · <span className="text-faint">{user.role}</span>
             </span>
           )}
-          <Badge tone="neutral">v{APP_VERSION}</Badge>
+          <Badge tone="neutral">v{version || APP_VERSION}</Badge>
         </div>
         <a href={`${API_BASE}logout.php`} title="Logout">
           <Button variant="ghost" size="icon" aria-label="Logout">

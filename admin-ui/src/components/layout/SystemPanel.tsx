@@ -20,7 +20,7 @@ function tzOptions(
 
 export function SystemPanel() {
   const [open, setOpen] = useState(false);
-  const { geoBases, timezones, commonSettings } = useBootstrap();
+  const { geoBases, timezones, commonSettings, version } = useBootstrap();
   const toast = useToast();
   const confirm = useConfirm();
   const qc = useQueryClient();
@@ -102,7 +102,7 @@ export function SystemPanel() {
             </div>
             <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface-2/40 px-3 py-2.5">
               <div className="text-xs text-muted">
-                Current version <Badge tone="neutral">v{APP_VERSION}</Badge>
+                Current version <Badge tone="neutral">v{version || APP_VERSION}</Badge>
               </div>
               <Button size="sm" onClick={() => checkMut.mutate()} loading={busy}>
                 {applyMut.isPending ? 'Updating…' : 'Check for updates'}
