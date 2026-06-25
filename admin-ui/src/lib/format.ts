@@ -34,6 +34,33 @@ export function fmtStat(v: unknown, kind: 'int' | 'pct' | 'money'): string {
   }
 }
 
+/** Full-precision rendering of a stat value, for tooltips/title attributes. */
+export function fmtStatFull(v: unknown, kind: 'int' | 'pct' | 'money'): string {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = toNumber(v);
+  switch (kind) {
+    case 'money':
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+    case 'pct':
+      return n.toFixed(2) + '%';
+    default:
+      return nf0.format(n);
+  }
+}
+
+/**
+ * Tailwind text-tone class for a metric value. Only profit-like and ROI-like
+ * metrics are coloured (green when good, red when bad) to keep tables readable;
+ * everything else stays neutral.
+ */
+export function metricTone(field: string, value: unknown): string {
+  if (field !== 'profit' && field !== 'roi') return '';
+  const n = toNumber(value);
+  if (n > 0) return 'text-success';
+  if (n < 0) return 'text-danger';
+  return '';
+}
+
 export function fmtCompact(v: unknown): string {
   const n = toNumber(v);
   if (Math.abs(n) >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';

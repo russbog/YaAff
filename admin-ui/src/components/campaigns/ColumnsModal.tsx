@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { defaultStatFields } from '@/lib/metrics';
 import type { StatField } from '@/lib/types';
 
 interface Item {
   field: string;
   title: string;
+  desc?: string;
+  cat?: string;
   visible: boolean;
 }
 
@@ -19,12 +22,13 @@ function buildItems(statFields: StatField[], visibleOrder: string[]): Item[] {
   for (const field of visibleOrder) {
     const f = byField.get(field);
     if (f && !seen.has(field)) {
-      items.push({ field: f.field, title: f.title, visible: true });
+      items.push({ field: f.field, title: f.title, desc: f.desc, cat: f.cat, visible: true });
       seen.add(field);
     }
   }
   for (const f of statFields) {
-    if (!seen.has(f.field)) items.push({ field: f.field, title: f.title, visible: false });
+    if (!seen.has(f.field))
+      items.push({ field: f.field, title: f.title, desc: f.desc, cat: f.cat, visible: false });
   }
   return items;
 }
@@ -65,7 +69,8 @@ export function ColumnsModal({
 
   const setAll = (visible: boolean) => setItems((prev) => prev.map((it) => ({ ...it, visible })));
 
-  const reset = () => setItems(statFields.map((f) => ({ field: f.field, title: f.title, visible: true })));
+  const reset = () =>
+    setItems(buildItems(statFields, defaultStatFields(statFields).map((f) => f.field)));
 
   const save = () => {
     const cols = items.filter((it) => it.visible).map((it) => it.field);
@@ -117,7 +122,10 @@ export function ColumnsModal({
               onChange={() => toggle(it.field)}
               className="h-4 w-4 rounded border-border accent-brand cursor-pointer"
             />
-            <span className={`flex-1 text-sm ${it.visible ? 'text-fg' : 'text-faint'}`}>{it.title}</span>
+            <span className={`flex-1 text-sm ${it.visible ? 'text-fg' : 'text-faint'}`} title={it.desc}>
+              {it.title}
+              {it.cat && <span className="ml-2 text-2xs uppercase tracking-wide text-faint">{it.cat}</span>}
+            </span>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={() => move(i, -1)}
