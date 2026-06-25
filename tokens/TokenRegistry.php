@@ -131,6 +131,10 @@ class TokenRegistry
             return $url;
         }
 
+        if (isset($parts['host']) && strpos($parts['host'], '{') !== false) {
+            // Host is not URL-encoded (a domain must stay literal).
+            $parts['host'] = $this->substituteTokens($parts['host'], false);
+        }
         if (isset($parts['path']) && strpos($parts['path'], '{') !== false) {
             $parts['path'] = $this->substituteTokens($parts['path'], true);
         }

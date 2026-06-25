@@ -183,6 +183,15 @@ class TokenRegistryTest extends TestCase
         $this->assertSame('https://o.com/x?a=b', $r->renderUrl('https://o.com/x?a=b'));
     }
 
+    public function testRenderUrlSubstitutesHostToken(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => ['domain_adr' => 'track.example.com', 'param1' => 'hello']]);
+        $this->assertSame(
+            'https://track.example.com/?param1=hello',
+            $r->renderUrl('https://{domain_adr}/?param1={param1}')
+        );
+    }
+
     public function testRenderUrlResolvesKnownTokens(): void
     {
         $r = TokenRegistry::fromClick(['clickid' => 'CLK', 'country' => 'US']);
