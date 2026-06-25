@@ -151,14 +151,48 @@ NGINX;
             return ['ok' => false, 'host' => $host, 'steps' => $steps, 'error' => 'acme install failed'];
         }
 
-        if (!is_file($this->vhostFile($host))) {
-            @file_put_contents($this->vhostFile($host), $this->vhostConfig($host));
-            $steps[] = 'vhost: written';
+        $desired = $this->vhostConfig($host);
+        $current = is_file($this->vhostFile($host)) ? (string)@file_get_contents($this->vhostFile($host)) : '';
+        if ($current !== $desired) {
+            @file_put_contents($this->vhostFile($host), $desired);
+            $steps[] = $current === '' ? 'vhost: written' : 'vhost: updated';
             [$rc] = $this->run($this->reloadCmd . ' 2>&1');
             $steps[] = 'reload: rc=' . $rc;
         }
 
         return ['ok' => true, 'host' => $host, 'steps' => $steps, 'error' => null];
+    }
+
+    /**
+     * Keep an already-issued domain's nginx vhost in sync with the current
+     * template (e.g. after the isolation deny rules were added) without forcing
+     * a full certificate re-issue. No-op unless the vhost already exists, the
+     * host is safe and we run as root; reloads nginx only when the file changed.
+     *
+     * @return array{ok:bool,changed:bool,error:?string}
+     */
+    public function ensureVhostCurrent(string $host): array
+    {
+        $host = strtolower(trim($host));
+        if (!self::isSafeHost($host)) {
+            return ['ok' => false, 'changed' => false, 'error' => 'unsafe hostname'];
+        }
+        if (!$this->isRoot()) {
+            return ['ok' => false, 'changed' => false, 'error' => 'not running as root'];
+        }
+        // Only manage a vhost we already own; never create one here (issuance is
+        // provision()'s job and needs a certificate first).
+        if (!is_file($this->vhostFile($host))) {
+            return ['ok' => true, 'changed' => false, 'error' => null];
+        }
+        $desired = $this->vhostConfig($host);
+        $current = (string)@file_get_contents($this->vhostFile($host));
+        if ($current === $desired) {
+            return ['ok' => true, 'changed' => false, 'error' => null];
+        }
+        @file_put_contents($this->vhostFile($host), $desired);
+        [$rc] = $this->run($this->reloadCmd . ' 2>&1');
+        return ['ok' => $rc === 0, 'changed' => true, 'error' => $rc === 0 ? null : 'reload failed'];
     }
 
     protected function isRoot(): bool
