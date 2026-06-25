@@ -3,6 +3,8 @@ export interface NavItem {
   label: string;
   icon: string;
   perm: string | null;
+  /** Sidebar section this item belongs to. Absent → ungrouped (top). */
+  group?: string;
 }
 
 export interface StatField {

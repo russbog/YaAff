@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { CommandPalette } from './CommandPalette';
 
 export function AppShell({
   title,
@@ -15,6 +16,7 @@ export function AppShell({
 
   return (
     <div className="h-full flex bg-bg">
+      <CommandPalette />
       <Sidebar collapsed={collapsed} />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title={title} onToggleSidebar={() => setCollapsed((c) => !c)}>

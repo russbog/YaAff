@@ -1,10 +1,11 @@
-import { PanelLeft, Sun, Moon, LogOut, RefreshCw } from 'lucide-react';
+import { PanelLeft, Sun, Moon, LogOut, RefreshCw, Search } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useBootstrap } from '@/providers/BootstrapProvider';
 import { SystemPanel } from './SystemPanel';
+import { OPEN_COMMAND_PALETTE } from './CommandPalette';
 import { API_BASE, APP_VERSION } from '@/lib/api';
 
 export function Topbar({
@@ -26,6 +27,16 @@ export function Topbar({
         <PanelLeft size={18} />
       </Button>
       <h1 className="text-base font-semibold">{title}</h1>
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event(OPEN_COMMAND_PALETTE))}
+        className="hidden md:flex items-center gap-2 ml-2 h-8 rounded-md border border-border bg-surface-2/60 pl-2.5 pr-2 text-xs text-faint hover:text-muted hover:border-border-strong transition-colors"
+        title="Search (Ctrl/⌘ K)"
+      >
+        <Search size={14} />
+        <span>Search…</span>
+        <kbd className="rounded border border-border bg-surface px-1 py-0.5 text-2xs">⌘K</kbd>
+      </button>
       <div className="flex-1 flex items-center justify-end gap-2">
         {children}
         <Button

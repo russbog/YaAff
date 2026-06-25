@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
@@ -50,6 +51,17 @@ export function EntityPage({ type }: { type: string }) {
   const [filesFolder, setFilesFolder] = useState<string | null>(null);
   const [zipOpen, setZipOpen] = useState(false);
   const [domainTools, setDomainTools] = useState<EntityRecord | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Deep-link: command palette "New …" navigates with ?new=1 to open the form.
+  useEffect(() => {
+    if (searchParams.get('new') === '1' && canManage) {
+      setEditing(null);
+      const next = new URLSearchParams(searchParams);
+      next.delete('new');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, canManage, setSearchParams]);
 
   const landingFolder = (r: EntityRecord): string | null => {
     const s = (r.settings ?? {}) as { type?: string; path?: string };
