@@ -3,6 +3,7 @@ import { useBootstrap } from './providers/BootstrapProvider';
 import { CampaignsPage } from './pages/CampaignsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { TrendsPage } from './pages/TrendsPage';
 import { ConversionsPage } from './pages/ConversionsPage';
 import { EntityPage } from './pages/EntityPage';
 import { CampaignSettingsPage } from './pages/CampaignSettingsPage';
@@ -35,6 +36,7 @@ export default function App() {
       <Route path="/campaign/:id" element={<CampaignSettingsPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/reports" element={<ReportsPage />} />
+      <Route path="/trends" element={<TrendsPage />} />
       <Route path="/conversions" element={<ConversionsPage />} />
       {ENTITY_ROUTES.map((type) => (
         <Route key={type} path={`/${type}`} element={<EntityPage type={type} />} />

@@ -146,6 +146,7 @@ function spa_nav(): array
         ['key' => 'campaigns',    'label' => 'Campaigns',     'icon' => 'megaphone',   'perm' => 'campaigns.view'],
         ['key' => 'dashboard',    'label' => 'Dashboard',     'icon' => 'gauge',       'perm' => 'reports.view'],
         ['key' => 'reports',      'label' => 'Reports',       'icon' => 'table',       'perm' => 'campaigns.view'],
+        ['key' => 'trends',       'label' => 'Trends',        'icon' => 'trend',       'perm' => 'reports.view'],
         ['key' => 'offers',       'label' => 'Offers',        'icon' => 'target',      'perm' => 'offers.view'],
         ['key' => 'landings',     'label' => 'Landings',      'icon' => 'file',        'perm' => 'landings.view'],
         ['key' => 'sources',      'label' => 'Sources',       'icon' => 'broadcast',   'perm' => 'sources.view'],
@@ -174,6 +175,19 @@ function spa_permission_map(): array
         $map["$t.manage"] = auth_can("$t.manage");
     }
     return $map;
+}
+
+/** Convert an IANA timezone name to a "+HH:MM" offset string for SQL date bucketing. */
+function spa_tz_offset(string $tz): string
+{
+    try {
+        $dtz = new DateTimeZone($tz);
+    } catch (Throwable $e) {
+        $dtz = new DateTimeZone('UTC');
+    }
+    $sec = (new DateTime('now', $dtz))->getOffset();
+    $abs = abs($sec);
+    return sprintf('%s%02d:%02d', $sec >= 0 ? '+' : '-', (int)floor($abs / 3600), (int)floor(($abs % 3600) / 60));
 }
 
 $route = (string)($_GET['r'] ?? '');
@@ -299,15 +313,7 @@ try {
             $end = (int)($_GET['end'] ?? time());
             $start = (int)($_GET['start'] ?? ($end - 86400));
             $tz = (string)($_GET['tz'] ?? 'UTC');
-            try {
-                $dtz = new DateTimeZone($tz);
-            } catch (Throwable $e) {
-                $dtz = new DateTimeZone('UTC');
-            }
-            $offsetInSeconds = (new DateTime('now', $dtz))->getOffset();
-            $absOffset = abs($offsetInSeconds);
-            $sign = $offsetInSeconds >= 0 ? '+' : '-';
-            $tzOffset = sprintf('%s%02d:%02d', $sign, (int)floor($absOffset / 3600), (int)floor(($absOffset % 3600) / 60));
+            $tzOffset = spa_tz_offset($tz);
             $q = new DashboardQuery($db->driver());
             // DashboardQuery speaks the report vocabulary (name/clicks, bucket);
             // the SPA charts expect {label,value} rows and a {t,...} series, so
@@ -333,6 +339,29 @@ try {
                 'series'      => $series,
                 'top_country' => $topRows($q->topBy('country', $campId, $start, $end, 8)),
                 'top_flow'    => $topRows($q->topBy('flow', $campId, $start, $end, 8)),
+            ]);
+        }
+
+        case 'trends': {
+            auth_require('reports.view', true);
+            $campId = (int)($_GET['campId'] ?? 0);
+            $gs = $db->get_common_settings();
+            $tz = $gs['statistics']['timezone'] ?? 'UTC';
+            if ($campId > 0) {
+                $cs = $db->get_campaign_settings($campId);
+                $tz = $cs['statistics']['timezone'] ?? $tz;
+            }
+            $end = (int)($_GET['end'] ?? time());
+            $start = (int)($_GET['start'] ?? ($end - 7 * 86400));
+            $granularity = (string)($_GET['granularity'] ?? 'day');
+            if (!in_array($granularity, ['hour', 'day', 'week', 'month'], true)) {
+                $granularity = 'day';
+            }
+            $q = new DashboardQuery($db->driver());
+            spa_respond([
+                'series'      => $q->metricsTimeseries($campId, $start, $end, spa_tz_offset($tz), $granularity),
+                'granularity' => $granularity,
+                'range'       => ['start' => $start, 'end' => $end, 'tz' => $tz],
             ]);
         }
 

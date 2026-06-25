@@ -136,6 +136,34 @@ export interface DashboardResponse {
   top_flow: TopRow[];
 }
 
+export type TrendGranularity = 'hour' | 'day' | 'week' | 'month';
+
+/** One time bucket of the Trends series with the full derived KPI set. */
+export interface TrendPoint {
+  bucket: string;
+  clicks: number;
+  uniques: number;
+  conversions: number;
+  leads: number;
+  purchases: number;
+  rejects: number;
+  revenue: number;
+  cost: number;
+  profit: number;
+  roi: number;
+  cr: number;
+  epc: number;
+  cpc: number;
+  [k: string]: number | string;
+}
+
+export interface TrendsResponse {
+  ok: true;
+  series: TrendPoint[];
+  granularity: TrendGranularity;
+  range: { start: number; end: number; tz: string };
+}
+
 /** A node in the nested report tree returned by the report endpoint. */
 export interface ReportNode {
   group?: string | number;

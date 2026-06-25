@@ -105,6 +105,57 @@ class DashboardQuery
     }
 
     /**
+     * Time-bucketed series at a chosen granularity ('hour'|'day'|'week'|'month')
+     * with the full derived KPI set per bucket (profit/roi/cr/epc/…). Backs the
+     * Trends page.
+     *
+     * @return array<int,array<string,float|int|string>>
+     */
+    public function metricsTimeseries(int $campId, int $start, int $end, string $tzOffset, string $granularity): array
+    {
+        $bucketExpr = $this->driver->dateBucket('time', $tzOffset, $granularity);
+
+        [$campWhere, $campBind] = $this->campFilter($campId, 'c');
+        $clickRows = $this->driver->select(
+            "SELECT $bucketExpr AS bucket,
+                    COUNT(*) AS clicks,
+                    COUNT(DISTINCT userid) AS uniques,
+                    COALESCE(SUM(cost), 0) AS cost
+             FROM clicks c
+             WHERE time BETWEEN :start AND :end" . $campWhere . "
+             GROUP BY bucket",
+            $this->binds($start, $end, $campBind)
+        );
+
+        [$convWhere, $convBind] = $this->campFilter($campId, '');
+        $convRows = $this->driver->select(
+            "SELECT $bucketExpr AS bucket,
+                    COUNT(*) AS conversions,
+                    COALESCE(SUM(revenue), 0) AS revenue,
+                    COALESCE(SUM(CASE WHEN status = 'Lead' THEN 1 ELSE 0 END), 0) AS leads,
+                    COALESCE(SUM(CASE WHEN status = 'Purchase' THEN 1 ELSE 0 END), 0) AS purchases,
+                    COALESCE(SUM(CASE WHEN status = 'Reject' THEN 1 ELSE 0 END), 0) AS rejects
+             FROM conversions
+             WHERE time BETWEEN :start AND :end" . $convWhere . "
+             GROUP BY bucket",
+            $this->binds($start, $end, $convBind)
+        );
+
+        $clickB = $this->keyBy($clickRows, 'bucket');
+        $convB = $this->keyBy($convRows, 'bucket');
+        $labels = array_keys($clickB + $convB);
+        sort($labels);
+
+        $out = [];
+        foreach ($labels as $label) {
+            $metrics = ReportAggregator::metrics(array_merge($clickB[$label] ?? [], $convB[$label] ?? []));
+            $metrics['bucket'] = (string)$label;
+            $out[] = $metrics;
+        }
+        return $out;
+    }
+
+    /**
      * Top breakdown rows for a click dimension (e.g. country, isp, flow).
      *
      * @return array<int,array<string,float|int|string>>

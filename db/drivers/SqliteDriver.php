@@ -213,6 +213,22 @@ class SqliteDriver implements DbDriver
         return "strftime('%Y-%m-%d', datetime($column, 'unixepoch', '$tzOffset'))";
     }
 
+    public function dateBucket(string $column, string $tzOffset, string $granularity): string
+    {
+        $local = "datetime($column, 'unixepoch', '$tzOffset')";
+        switch ($granularity) {
+            case 'hour':
+                return "strftime('%Y-%m-%d %H:00', $local)";
+            case 'week':
+                return "strftime('%Y-W%W', $local)";
+            case 'month':
+                return "strftime('%Y-%m', $local)";
+            case 'day':
+            default:
+                return "strftime('%Y-%m-%d', $local)";
+        }
+    }
+
     public function insertIgnoreInto(): string
     {
         return 'INSERT OR IGNORE INTO';

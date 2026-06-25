@@ -70,6 +70,13 @@ interface DbDriver
      */
     public function dateGroup(string $column, string $tzOffset): string;
 
+    /**
+     * SQL expression bucketing an integer unix-epoch $column at the given
+     * $granularity ('hour'|'day'|'week'|'month'), shifted by $tzOffset.
+     * Returns a sortable string label per bucket.
+     */
+    public function dateBucket(string $column, string $tzOffset, string $granularity): string;
+
     /** "INSERT OR IGNORE INTO" (SQLite) / "INSERT IGNORE INTO" (MySQL). */
     public function insertIgnoreInto(): string;
 
