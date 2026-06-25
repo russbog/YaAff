@@ -79,6 +79,20 @@ export interface PermissionResource {
   label: string;
 }
 
+/** A single live system-health check shown in the Status panel. */
+export interface StatusCheck {
+  key: string;
+  label: string;
+  status: 'ok' | 'warn' | 'error';
+  value: string;
+  detail?: string;
+}
+
+export interface StatusResponse {
+  ok: true;
+  checks: StatusCheck[];
+}
+
 /** A grouping dimension offered by the custom report builder. */
 export interface GroupByDim {
   field: string;
