@@ -167,14 +167,46 @@ function spa_nav(): array
 
 function spa_permission_map(): array
 {
-    $types = ['campaigns', 'reports', 'offers', 'landings', 'sources', 'networks', 'domains',
-        'integrations', 'conversions', 'blacklists', 'rules', 'channels', 'users', 'roles', 'data', 'groups'];
     $map = [];
-    foreach ($types as $t) {
+    foreach (spa_permission_resources() as $r) {
+        $t = $r['key'];
         $map["$t.view"] = auth_can("$t.view");
         $map["$t.manage"] = auth_can("$t.manage");
     }
     return $map;
+}
+
+/**
+ * Catalog of permission resources (the <type> in "<type>.view" / "<type>.manage").
+ * Drives the RBAC permission matrix in the roles editor.
+ *
+ * @return array<int,array{key:string,label:string}>
+ */
+function spa_permission_resources(): array
+{
+    $labels = [
+        'campaigns'    => 'Campaigns',
+        'reports'      => 'Reports',
+        'offers'       => 'Offers',
+        'landings'     => 'Landings',
+        'sources'      => 'Sources',
+        'networks'     => 'Networks',
+        'domains'      => 'Domains',
+        'integrations' => 'Conversion APIs',
+        'conversions'  => 'Conversions',
+        'blacklists'   => 'Bot Protection',
+        'rules'        => 'Rules',
+        'channels'     => 'Notifications',
+        'users'        => 'Users',
+        'roles'        => 'Roles',
+        'data'         => 'Data',
+        'groups'       => 'Groups',
+    ];
+    $out = [];
+    foreach ($labels as $key => $label) {
+        $out[] = ['key' => $key, 'label' => $label];
+    }
+    return $out;
 }
 
 /** Convert an IANA timezone name to a "+HH:MM" offset string for SQL date bucketing. */
@@ -212,6 +244,7 @@ try {
                 'groupByDims'  => spa_groupby_dimensions(),
                 'trafficBackUrl' => $gs['trafficBackUrl'] ?? '',
                 'geoBases'     => spa_geobases(),
+                'permissionResources' => spa_permission_resources(),
             ]);
         }
 
