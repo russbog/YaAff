@@ -21,7 +21,7 @@ function traficback(array $clickParams): CloakerAction
     $tbUrl = $mp->replace_url_macros($cs['trafficBackUrl']);
 
     return empty($tbUrl) ?
-        new CloakerAction('traficback', 'die', 'NO CAMPAIGN FOR THIS DOMAIN AND TRAFFICBACK NOT SET!') :
+        new CloakerAction('traficback', 'notfound', '') :
         new CloakerAction('traficback', 'redirect', $tbUrl);
 }
 
