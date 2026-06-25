@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner, EmptyState } from '@/components/ui/States';
-import { folderApi, type FolderType } from '@/lib/api';
+import { entityApi, folderApi, type FolderType } from '@/lib/api';
+import type { EntityRecord } from '@/lib/types';
 import type { LoadMode } from '@/lib/campaign';
 import { cn } from '@/lib/cn';
 
@@ -189,6 +190,89 @@ export function StringListEditor({
         <Plus size={14} /> {addLabel}
       </Button>
     </div>
+  );
+}
+
+// Picks a first-class catalog entity (landing or offer) to attach to a step.
+// Landings can be restricted to local (uploaded) ones since remote landings are
+// redirect links that belong in an Offer/Direct step instead.
+export function EntityPickerModal({
+  open,
+  onClose,
+  onPick,
+  entity,
+  exclude = [],
+  localLandingsOnly = false,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onPick: (rec: EntityRecord) => void;
+  entity: 'landings' | 'offers';
+  exclude?: number[];
+  localLandingsOnly?: boolean;
+}) {
+  const [q, setQ] = useState('');
+  const query = useQuery({
+    queryKey: ['entity-list', entity],
+    queryFn: () => entityApi.list(entity),
+    enabled: open,
+  });
+  const isLandings = entity === 'landings';
+  const items = (query.data?.items ?? []).filter((r) => {
+    if (exclude.includes(r.id)) return false;
+    const s = (r.settings ?? {}) as { type?: string };
+    if (isLandings && localLandingsOnly && s.type === 'remote') return false;
+    return `${r.name} ${r.id}`.toLowerCase().includes(q.toLowerCase());
+  });
+  const noun = isLandings ? 'landing' : 'offer';
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={`Add ${noun}`}
+      description={
+        isLandings
+          ? 'Pick a landing from the catalog. Manage landings on the Landings page.'
+          : 'Pick an offer from the catalog. Manage offers on the Offers page.'
+      }
+    >
+      <div className="space-y-3">
+        <Input autoFocus placeholder={`Search ${noun}s\u2026`} value={q} onChange={(e) => setQ(e.target.value)} />
+        {query.isLoading ? (
+          <div className="py-8 grid place-items-center">
+            <Spinner className="h-6 w-6" />
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState title={`No ${noun}s`} description={`Create one on the ${isLandings ? 'Landings' : 'Offers'} page first.`} />
+        ) : (
+          <ul className="max-h-72 overflow-y-auto rounded-md border border-border divide-y divide-border">
+            {items.map((r) => {
+              const s = (r.settings ?? {}) as { type?: string; url?: string; path?: string };
+              const hint = isLandings
+                ? s.type === 'remote'
+                  ? `remote \u00b7 ${s.url ?? ''}`
+                  : `local \u00b7 folder ${s.path || r.id}`
+                : (s.url ?? '');
+              return (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-surface-2 transition-colors"
+                    onClick={() => {
+                      onPick(r);
+                      onClose();
+                    }}
+                  >
+                    <div className="text-sm font-medium">{r.name}</div>
+                    {hint && <div className="text-2xs text-faint truncate">{hint}</div>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </Modal>
   );
 }
 
