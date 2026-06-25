@@ -1,55 +1,24 @@
 {
-  "domains": [
-    "yourdomain.com",
-    "*.mydomain.com",
-    "localhost:48960"
-  ],
-  "apikey": "test",
-  "identifier": "campaign",
+  "domains": [],
+  "apikey": "",
+  "identifier": "",
   "saveuserflow": false,
   "white": {
     "action": "error",
-    "folders": [
-      "white"
-    ],
+    "folders": [],
     "redirect": {
       "type": "302",
-      "urls": [
-        "https://ya.ru",
-        "https://google.com"
-      ]
+      "urls": []
     },
-    "curls": [
-      "https://www.9111.ru/"
-    ],
-    "errorcodes": [
-      "200"
-    ],
+    "curls": [],
+    "errorcodes": [],
     "domainfilter": {
       "use": false,
-      "domains": [
-        {
-          "name": "127.0.0.1",
-          "action": "folder:white"
-        },
-        {
-          "name": "localhost",
-          "action": "folder:white2"
-        }
-      ]
+      "domains": []
     },
     "filters": {
       "condition": "AND",
-      "rules": [
-        {
-          "id": "country",
-          "field": "country",
-          "type": "string",
-          "input": "text",
-          "operator": "in",
-          "value": "RU,BG,SG"
-        }
-      ],
+      "rules": [],
       "valid": true
     }
   },
@@ -78,10 +47,10 @@
           {
             "action": "redirect",
             "folders": [],
+            "landings": [],
+            "offers": [],
             "redirect": {
-              "urls": [
-                {"url": "https://www.rolltrk.com/DHSF7PS/2QM39NQ/", "label": "rolltrk.com"}
-              ],
+              "urls": [],
               "type": 302
             },
             "weights": [],
@@ -418,14 +387,6 @@
       "reject": "Reject",
       "trash": "Trash"
     },
-    "s2s": [
-      {
-        "url": "https://eu.roerads.com/conversion/aid/45141/ed52562686164ba2?click_id={hash:clickid}",
-        "method": "GET",
-        "events": [
-          "Purchase"
-        ]
-      }
-    ]
+    "s2s": []
   }
 }
