@@ -41,6 +41,14 @@ function ds_respond(array $payload, int $code = 200): void
 
 $action = (string)($_REQUEST['action'] ?? 'all');
 $mutating = in_array($action, ['check', 'check_all', 'fix'], true);
+
+// The SPA posts the domain id in a JSON body (only `action` rides in the query
+// string), so parse it here with a form/query fallback.
+$body = json_decode((string)file_get_contents('php://input'), true);
+if (!is_array($body)) {
+    $body = [];
+}
+$reqId = (int)($body['id'] ?? $_REQUEST['id'] ?? 0);
 auth_require($mutating ? 'domains.manage' : 'domains.view', true);
 
 $checker = new DomainStatusChecker();
@@ -56,7 +64,7 @@ switch ($action) {
     }
 
     case 'check': {
-        $id = (int)($_REQUEST['id'] ?? 0);
+        $id = $reqId;
         $domain = $id > 0 ? $repo->find($id) : null;
         if (!$domain instanceof Domain) {
             ds_respond(['ok' => false, 'error' => 'Unknown domain'], 404);
@@ -80,7 +88,7 @@ switch ($action) {
     }
 
     case 'fix': {
-        $id = (int)($_REQUEST['id'] ?? 0);
+        $id = $reqId;
         $domain = $id > 0 ? $repo->find($id) : null;
         if (!$domain instanceof Domain) {
             ds_respond(['ok' => false, 'error' => 'Unknown domain'], 404);
