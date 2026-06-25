@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Search, ChevronLeft, ChevronRight, Table as TableIcon } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Table as TableIcon, Download } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Select, Input } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
@@ -16,6 +16,7 @@ import { useBootstrap } from '@/providers/BootstrapProvider';
 import { useRange } from '@/providers/RangeProvider';
 import { spa } from '@/lib/api';
 import { fmtDateTime } from '@/lib/format';
+import { downloadCsv } from '@/lib/csv';
 import type { ClicksQuery } from '@/lib/types';
 
 type View = ClicksQuery['view'];
@@ -82,7 +83,7 @@ export function ReportsPage() {
   const rows = useMemo(() => data?.data ?? [], [data]);
   const lastPage = data?.last_page ?? 1;
 
-  const columns = useMemo<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
+  const orderedKeys = useMemo(() => {
     const keys = new Set<string>();
     rows.slice(0, 30).forEach((r) => Object.keys(r).forEach((k) => keys.add(k)));
     const ordered = Array.from(keys);
@@ -93,7 +94,24 @@ export function ReportsPage() {
       const ib = priority.indexOf(b);
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
-    return ordered.map((key) => ({
+    return ordered;
+  }, [rows]);
+
+  const exportLog = () => {
+    if (rows.length === 0) return;
+    const headers = orderedKeys.map(humanize);
+    const body = rows.map((r) =>
+      orderedKeys.map((k) => {
+        const v = r[k];
+        if (k === 'time') return fmtDateTime(v);
+        return v === null || v === undefined ? '' : String(v);
+      }),
+    );
+    downloadCsv(`clicks-${view}-${new Date().toISOString().slice(0, 10)}.csv`, headers, body);
+  };
+
+  const columns = useMemo<ColumnDef<Record<string, unknown>, unknown>[]>(() => {
+    return orderedKeys.map((key) => ({
       id: key,
       header: humanize(key),
       accessorFn: (r) => r[key],
@@ -107,7 +125,7 @@ export function ReportsPage() {
         return <span className="truncate max-w-[240px] inline-block align-middle" title={str}>{str}</span>;
       },
     }));
-  }, [rows]);
+  }, [orderedKeys]);
 
   return (
     <AppShell
@@ -153,6 +171,9 @@ export function ReportsPage() {
             </div>
             <div className="flex items-center gap-3">
               {isFetching && <Badge tone="info" dot>Loading</Badge>}
+              <Button variant="secondary" size="sm" onClick={exportLog} disabled={rows.length === 0}>
+                <Download size={14} /> CSV
+              </Button>
               <div className="flex items-center gap-1">
                 <Button
                   variant="secondary"
