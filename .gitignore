@@ -9,6 +9,7 @@
 /db/*.db
 /db/*.db-shm
 /db/*.db-wal
+/db/domain_status.json
 bases/update.txt
 bases/*.mmdb
 bases/test.txt

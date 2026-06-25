@@ -1,7 +1,18 @@
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Plus, MoreVertical, Pencil, Trash2, Search, FolderOpen, UploadCloud, Globe } from 'lucide-react';
+import {
+  Plus,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Search,
+  FolderOpen,
+  UploadCloud,
+  Globe,
+  RefreshCw,
+  Wrench,
+} from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
@@ -15,10 +26,11 @@ import { DomainForm } from '@/components/domains/DomainForm';
 import { FileManager } from '@/components/files/FileManager';
 import { ZipUploadModal } from '@/components/files/ZipUploadModal';
 import { DomainToolsModal } from '@/components/domains/DomainToolsModal';
+import { DomainStatusBadge } from '@/components/domains/DomainStatusBadge';
 import { useToast } from '@/providers/ToastProvider';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
-import { entityApi } from '@/lib/api';
+import { entityApi, domainStatusApi, type DomainStatusMap } from '@/lib/api';
 import { fmtDateTime } from '@/lib/format';
 import type { EntityRecord } from '@/lib/types';
 
@@ -72,6 +84,44 @@ export function EntityPage({ type }: { type: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Live domain health (DNS/SSL). Cached map, polled while the page is open.
+  const { data: statusData, refetch: refetchStatus } = useQuery({
+    queryKey: ['domain-status'],
+    queryFn: () => domainStatusApi.all(),
+    enabled: isDomains,
+    refetchInterval: isDomains ? 30_000 : false,
+  });
+  const statusMap: DomainStatusMap = statusData?.statuses ?? {};
+
+  const recheckMut = useMutation({
+    mutationFn: (id: number) => domainStatusApi.check(id),
+    onSuccess: (r) => {
+      toast.success(`Checked: ${r.status.detail}`);
+      refetchStatus();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const recheckAllMut = useMutation({
+    mutationFn: () => domainStatusApi.checkAll(),
+    onSuccess: (r) => {
+      toast.success(`Re-checked ${Object.keys(r.statuses).length} domain(s)`);
+      refetchStatus();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const fixMut = useMutation({
+    mutationFn: (id: number) => domainStatusApi.fix(id),
+    onSuccess: (r) => {
+      if (r.fix.queued) toast.info(r.fix.detail);
+      else if (r.fix.ok) toast.success(r.fix.detail);
+      else toast.error(r.fix.detail);
+      refetchStatus();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   // Bulk create (domains): one record per comma-separated hostname.
   const bulkSaveMut = useMutation({
     mutationFn: async (bodies: Record<string, unknown>[]) => {
@@ -109,6 +159,14 @@ export function EntityPage({ type }: { type: string }) {
       },
       ...(isDomains
         ? [
+            {
+              id: 'status',
+              header: 'Status',
+              enableSorting: false,
+              cell: ({ row }: { row: { original: EntityRecord } }) => (
+                <DomainStatusBadge status={statusMap[String(row.original.id)]} />
+              ),
+            } as ColumnDef<EntityRecord, unknown>,
             {
               id: 'config',
               header: 'Config',
@@ -165,6 +223,16 @@ export function EntityPage({ type }: { type: string }) {
                 ...(isDomains
                   ? [
                       {
+                        label: 'Recheck status',
+                        icon: <RefreshCw size={14} />,
+                        onClick: () => recheckMut.mutate(r.id),
+                      },
+                      {
+                        label: 'Fix now',
+                        icon: <Wrench size={14} />,
+                        onClick: () => fixMut.mutate(r.id),
+                      },
+                      {
                         label: 'DNS / Cloudflare',
                         icon: <Globe size={14} />,
                         onClick: () => setDomainTools(r),
@@ -196,7 +264,7 @@ export function EntityPage({ type }: { type: string }) {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canManage, schema, isLandings, isDomains],
+    [canManage, schema, isLandings, isDomains, statusMap],
   );
 
   if (!schema) {
@@ -242,6 +310,16 @@ export function EntityPage({ type }: { type: string }) {
             {isLandings && (
               <Button variant="secondary" size="sm" onClick={() => setZipOpen(true)}>
                 <UploadCloud size={15} /> Upload ZIP
+              </Button>
+            )}
+            {isDomains && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => recheckAllMut.mutate()}
+                disabled={recheckAllMut.isPending}
+              >
+                <RefreshCw size={15} className={recheckAllMut.isPending ? 'animate-spin' : undefined} /> Recheck all
               </Button>
             )}
             <Button variant="primary" size="sm" onClick={() => setEditing(null)}>
