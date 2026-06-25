@@ -61,13 +61,19 @@ class EntitySchemaTest extends TestCase
         $this->assertGreaterThanOrEqual(20, count($currency['options']));
     }
 
-    public function testOfferDestinationFieldsAreGatedOnRedirectType(): void
+    public function testOfferIsAlwaysARedirectLink(): void
     {
         $fields = entity_schema('offers')['fields'];
+        $keys = array_column($fields, 'key');
+        // An offer is a redirect link only; the legacy local-landing type was removed.
+        $this->assertNotContains('type', $keys, 'offers must not expose a type field');
+
         $url = $this->field($fields, 'url');
-        $this->assertSame(['redirect'], $url['showIf']['in']);
-        $this->assertSame('type', $url['showIf']['field']);
+        $this->assertArrayNotHasKey('showIf', $url, 'offer URL is always shown (no type gate)');
         $this->assertNotEmpty($url['tokens']);
+
+        $redirectType = $this->field($fields, 'redirect_type');
+        $this->assertArrayNotHasKey('showIf', $redirectType, 'offer redirect type is always shown');
     }
 
     public function testSourcePostbackExposesLiveTokens(): void
