@@ -5,6 +5,10 @@ require_once __DIR__ . '/../logging.php';
 require_once __DIR__ . '/password.php';
 require_once __DIR__ . '/../redirect.php';
 require_once __DIR__ . '/../paths.php';
+require_once __DIR__ . '/../domainguard.php';
+
+// Pool domains are traffic-only: the admin panel must not exist on them.
+deny_system_path_on_pool_domain();
 
 global $cloSettings;
 $admDomain = $cloSettings['adminDomain'];
