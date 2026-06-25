@@ -13,11 +13,21 @@ import {
 import {
   FILTER_FIELDS,
   FILTER_FIELD_MAP,
+  FILTER_CATEGORY_ORDER,
   NO_VALUE_OPERATORS,
   OPERATOR_LABELS,
   PARAM_OPERATORS,
   type FilterField,
+  type FilterCategory,
 } from './filterFields';
+
+// Fields grouped by category, preserving catalog order, for the <optgroup> picker.
+const FIELD_GROUPS: { category: FilterCategory; fields: FilterField[] }[] = FILTER_CATEGORY_ORDER
+  .map((category) => ({
+    category,
+    fields: FILTER_FIELDS.filter((f) => (f.category ?? 'Advanced') === category),
+  }))
+  .filter((g) => g.fields.length > 0);
 
 function newRule(field: FilterField): FilterRule {
   return {
@@ -58,10 +68,14 @@ function RuleRow({
           onChange(newRule(f));
         }}
       >
-        {FILTER_FIELDS.map((f) => (
-          <option key={f.id} value={f.id}>
-            {f.label}
-          </option>
+        {FIELD_GROUPS.map((g) => (
+          <optgroup key={g.category} label={g.category}>
+            {g.fields.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.label}
+              </option>
+            ))}
+          </optgroup>
         ))}
       </Select>
 
