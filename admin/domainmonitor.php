@@ -26,6 +26,7 @@ require_once __DIR__ . '/../entities/Repositories.php';
 require_once __DIR__ . '/../domains/DomainStatusChecker.php';
 require_once __DIR__ . '/../domains/DomainStatusStore.php';
 require_once __DIR__ . '/../domains/DomainFixer.php';
+require_once __DIR__ . '/../domains/AcmeSslManager.php';
 require_once __DIR__ . '/../domains/ServerIp.php';
 
 $ts = static fn(): string => '[' . gmdate('Y-m-d H:i:s') . ' UTC]';
@@ -36,6 +37,7 @@ $repo = Repositories::domains($driver);
 $store = new DomainStatusStore();
 $checker = new DomainStatusChecker();
 $fixer = new DomainFixer();
+$acme = new AcmeSslManager();
 $serverIp = ServerIp::detect();
 
 // Statuses where remediation makes sense (DNS issues are the operator's job).
@@ -50,6 +52,13 @@ foreach ($domains as $domain) {
     $record = $checker->check($domain, $serverIp);
     $store->put($id, $record);
     echo $ts() . " {$record['host']}: {$record['status']} — {$record['detail']}\n";
+
+    // Keep an already-issued domain's nginx vhost in sync with the current
+    // template (e.g. the traffic-only isolation deny rules) without re-issuing.
+    $vh = $acme->ensureVhostCurrent($record['host']);
+    if ($vh['changed']) {
+        echo $ts() . "   vhost: refreshed to current template\n";
+    }
 
     $shouldFix = $record['needs_fix'] === true || in_array($record['status'], $fixable, true);
     if (!$shouldFix) {
