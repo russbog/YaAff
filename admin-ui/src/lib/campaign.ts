@@ -83,6 +83,8 @@ export interface Flow {
   optimize_for: 'Lead' | 'Purchase';
   optimize_mode: 'funnels' | 'separate';
   steps: Step[];
+  /** Free-form media-buyer annotation, shown only in the editor. */
+  notes: string;
 }
 
 export interface JsBotDetection {
@@ -296,6 +298,7 @@ function normFlow(v: unknown): Flow {
     optimize_for: asStr(o.optimize_for) === 'Purchase' ? 'Purchase' : 'Lead',
     optimize_mode: asStr(o.optimize_mode) === 'separate' ? 'separate' : 'funnels',
     steps: asArray(o.steps).map(normStep),
+    notes: asStr(o.notes),
   };
 }
 
@@ -478,6 +481,7 @@ function serializeFlow(f: Flow): Record<string, unknown> {
     optimize_for: f.optimize_for,
     optimize_mode: f.optimize_mode,
     steps: f.steps.map(serializeStep),
+    notes: f.notes,
   };
 }
 
@@ -523,6 +527,7 @@ export function newFlow(name: string): Flow {
     optimize_for: 'Lead',
     optimize_mode: 'funnels',
     steps: [newStep('folder')],
+    notes: '',
   };
 }
 
