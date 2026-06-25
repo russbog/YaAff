@@ -143,8 +143,7 @@ class TokenRegistry
         }
         if (isset($parts['query']) && $parts['query'] !== '') {
             parse_str($parts['query'], $query);
-            $this->substituteQuery($query);
-            $parts['query'] = http_build_query($query);
+            $parts['query'] = http_build_query($this->substituteQuery($query));
         }
 
         return self::buildUrl($parts, $url);
@@ -166,16 +165,29 @@ class TokenRegistry
         }, $template);
     }
 
-    /** Substitute tokens inside every (possibly nested) query value in place. */
-    private function substituteQuery(array &$query): void
+    /**
+     * Substitute tokens inside every (possibly nested) query key and value, so
+     * both `?{name}=v` and `?k={value}` resolve. http_build_query re-encodes
+     * afterwards, so values are left raw here.
+     *
+     * @param array<array-key,mixed> $query
+     * @return array<array-key,mixed>
+     */
+    private function substituteQuery(array $query): array
     {
-        foreach ($query as &$v) {
+        $out = [];
+        foreach ($query as $k => $v) {
+            if (is_string($k) && strpos($k, '{') !== false) {
+                $k = $this->substituteTokens($k, false);
+            }
             if (is_array($v)) {
-                $this->substituteQuery($v);
+                $v = $this->substituteQuery($v);
             } elseif (is_string($v) && strpos($v, '{') !== false) {
                 $v = $this->substituteTokens($v, false);
             }
+            $out[$k] = $v;
         }
+        return $out;
     }
 
     /** Reassemble a parse_url() component array into a URL string. */

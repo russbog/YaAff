@@ -192,6 +192,19 @@ class TokenRegistryTest extends TestCase
         );
     }
 
+    public function testRenderUrlSubstitutesQueryKeyToken(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => ['domain_adr' => 'track.example.com', 'param_name' => 'click_id', 'param1' => 'hello']]);
+        $this->assertSame(
+            'track.example.com/?click_id=hello',
+            $r->renderUrl('{domain_adr}/?{param_name}={param1}')
+        );
+        $this->assertSame(
+            'https://track.example.com/?click_id=hello',
+            $r->renderUrl('https://{domain_adr}/?{param_name}={param1}')
+        );
+    }
+
     public function testRenderUrlResolvesKnownTokens(): void
     {
         $r = TokenRegistry::fromClick(['clickid' => 'CLK', 'country' => 'US']);
