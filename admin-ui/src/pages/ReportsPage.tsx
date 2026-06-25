@@ -11,6 +11,7 @@ import { Segmented } from '@/components/ui/Segmented';
 import { DateRangePicker } from '@/components/ui/DateRangePicker';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { DataTable } from '@/components/data/DataTable';
+import { ReportBuilder } from '@/components/reports/ReportBuilder';
 import { useBootstrap } from '@/providers/BootstrapProvider';
 import { useRange } from '@/providers/RangeProvider';
 import { spa } from '@/lib/api';
@@ -27,6 +28,12 @@ const VIEWS: { value: View; label: string }[] = [
 
 const PAGE_SIZE = 200;
 
+type Mode = 'report' | 'log';
+const MODES: { value: Mode; label: string }[] = [
+  { value: 'report', label: 'Report' },
+  { value: 'log', label: 'Log' },
+];
+
 function humanize(key: string): string {
   return key.replace(/^param\./, '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -40,6 +47,7 @@ export function ReportsPage() {
   const [searchParams] = useSearchParams();
   const initialView = searchParams.get('view');
   const [campId, setCampId] = useState<number>(campaignsList[0]?.id ?? 0);
+  const [mode, setMode] = useState<Mode>('report');
   const [view, setView] = useState<View>(isView(initialView) ? initialView : 'allowed');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -106,7 +114,7 @@ export function ReportsPage() {
       title="Reports"
       toolbar={
         <div className="flex items-center gap-2">
-          {needsCampaign && (
+          {(mode === 'report' || needsCampaign) && (
             <Select
               value={campId}
               onChange={(e) => setCampId(Number(e.target.value))}
@@ -120,12 +128,15 @@ export function ReportsPage() {
               ))}
             </Select>
           )}
-          <Segmented size="sm" value={view} options={VIEWS} onChange={setView} />
+          <Segmented size="sm" value={mode} options={MODES} onChange={setMode} />
+          {mode === 'log' && <Segmented size="sm" value={view} options={VIEWS} onChange={setView} />}
           <DateRangePicker />
         </div>
       }
     >
-      {error ? (
+      {mode === 'report' ? (
+        <ReportBuilder campId={campId} />
+      ) : error ? (
         <ErrorState error={error} onRetry={() => refetch()} />
       ) : (
         <div className="space-y-4">

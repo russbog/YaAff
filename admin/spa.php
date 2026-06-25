@@ -116,6 +116,30 @@ function spa_stat_fields(): array
     ];
 }
 
+/**
+ * Grouping dimensions offered by the custom report builder. Each maps to a
+ * column understood by Db::get_statistics() (built-in click columns plus the
+ * special "date" bucket). Stacking several builds a nested report tree.
+ */
+function spa_groupby_dimensions(): array
+{
+    return [
+        ['field' => 'date',      'label' => 'Date',        'desc' => 'Day bucket in the reporting timezone.'],
+        ['field' => 'country',   'label' => 'Country',     'desc' => 'Visitor country (GeoIP).'],
+        ['field' => 'isp',       'label' => 'ISP',         'desc' => 'Internet service provider / carrier.'],
+        ['field' => 'lang',      'label' => 'Language',    'desc' => 'Browser language.'],
+        ['field' => 'os',        'label' => 'OS',          'desc' => 'Operating system family.'],
+        ['field' => 'osver',     'label' => 'OS version',  'desc' => 'Operating system version.'],
+        ['field' => 'device',    'label' => 'Device',      'desc' => 'Device type (mobile / desktop / tablet).'],
+        ['field' => 'brand',     'label' => 'Brand',       'desc' => 'Device brand.'],
+        ['field' => 'model',     'label' => 'Model',       'desc' => 'Device model.'],
+        ['field' => 'client',    'label' => 'Browser',     'desc' => 'Client (browser) name.'],
+        ['field' => 'clientver', 'label' => 'Browser ver', 'desc' => 'Client (browser) version.'],
+        ['field' => 'flow',      'label' => 'Flow',        'desc' => 'Traffic flow that handled the click.'],
+        ['field' => 'step',      'label' => 'Step',        'desc' => 'Funnel step index.'],
+    ];
+}
+
 function spa_nav(): array
 {
     $items = [
@@ -171,6 +195,7 @@ try {
                 'campaignsList' => $db->get_campaigns_list(),
                 'timezones'    => get_timezone_options(),
                 'statFields'   => spa_stat_fields(),
+                'groupByDims'  => spa_groupby_dimensions(),
                 'trafficBackUrl' => $gs['trafficBackUrl'] ?? '',
                 'geoBases'     => spa_geobases(),
             ]);
@@ -206,6 +231,66 @@ try {
             }
             $settings = $db->get_campaign_settings($id);
             spa_respond(['id' => $id, 'settings' => $settings]);
+        }
+
+        case 'report': {
+            auth_require('reports.view', true);
+            $campId = (int)($_GET['campId'] ?? 0);
+            if ($campId <= 0) {
+                spa_error('Missing campaign id');
+            }
+            $gs = $db->get_common_settings();
+            $cs = $db->get_campaign_settings($campId);
+            $tz = $cs['statistics']['timezone'] ?? ($gs['statistics']['timezone'] ?? 'UTC');
+
+            // Allowed grouping dimensions and stat fields (whitelist against catalogs).
+            $allowedDims = array_column(spa_groupby_dimensions(), 'field');
+            $allowedStats = array_column(spa_stat_fields(), 'field');
+
+            $rawGroup = $_GET['groupBy'] ?? [];
+            if (is_string($rawGroup)) {
+                $rawGroup = $rawGroup === '' ? [] : explode(',', $rawGroup);
+            }
+            $groupBy = array_values(array_filter(
+                array_map('strval', (array)$rawGroup),
+                static fn($f) => in_array($f, $allowedDims, true)
+            ));
+            $groupBy = array_slice(array_values(array_unique($groupBy)), 0, 5);
+
+            $rawFields = $_GET['fields'] ?? [];
+            if (is_string($rawFields)) {
+                $rawFields = $rawFields === '' ? [] : explode(',', $rawFields);
+            }
+            $fields = array_values(array_filter(
+                array_map('strval', (array)$rawFields),
+                static fn($f) => in_array($f, $allowedStats, true)
+            ));
+            if (empty($fields)) {
+                $fields = ['clicks', 'uniques', 'conversion', 'revenue', 'costs', 'profit', 'roi'];
+            }
+
+            // Derived rate metrics (roi, cra, epc, …) are computed from additive
+            // base metrics; always feed those bases to the aggregator so a node's
+            // derived columns never divide by a missing key. Extra keys are
+            // ignored by the frontend, which renders only the requested $fields.
+            $baseFields = ['clicks', 'uniques', 'conversion', 'purchase', 'trash', 'revenue', 'costs'];
+            $computeFields = array_values(array_unique(array_merge($fields, $baseFields)));
+
+            $end = isset($_GET['end']) ? (int)$_GET['end'] : null;
+            $start = isset($_GET['start']) ? (int)$_GET['start'] : null;
+            $range = ($start !== null && $end !== null && $start < $end)
+                ? [$start, $end]
+                : Dates::get_time_range($tz);
+
+            $tree = $db->get_statistics($computeFields, $groupBy, $campId, (string)$range[0], (string)$range[1], $tz, [], []);
+            spa_respond([
+                'tree'       => $tree,
+                'groupBy'    => $groupBy,
+                'fields'     => $fields,
+                'dimensions' => spa_groupby_dimensions(),
+                'statFields' => spa_stat_fields(),
+                'range'      => ['start' => $range[0], 'end' => $range[1], 'tz' => $tz],
+            ]);
         }
 
         case 'dashboard': {

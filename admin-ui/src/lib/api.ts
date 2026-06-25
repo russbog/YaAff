@@ -111,6 +111,15 @@ export const spa = {
     }),
   dashboard: (p: { campId: number; start: number; end: number; tz: string }) =>
     apiGet<import('./types').DashboardResponse>('spa.php', { r: 'dashboard', ...p }),
+  report: (p: { campId: number; groupBy: string[]; fields: string[]; start?: number; end?: number }) =>
+    apiGet<import('./types').ReportResponse>('spa.php', {
+      r: 'report',
+      campId: p.campId,
+      groupBy: p.groupBy.join(','),
+      fields: p.fields.join(','),
+      start: p.start,
+      end: p.end,
+    }),
   clicks: (p: import('./types').ClicksQuery) =>
     apiGet<import('./types').ClicksResponse>('spa.php', { r: 'clicks', ...p }),
   conversions: (p: { campId?: number; limit?: number }) =>
