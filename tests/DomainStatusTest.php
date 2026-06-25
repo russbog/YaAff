@@ -155,6 +155,11 @@ final class DomainStatusTest extends TestCase
         $this->assertStringContainsString('server_name example.com;', $vhost);
         $this->assertStringContainsString('/etc/yaaff-ssl/example.com/fullchain.pem', $vhost);
         $this->assertStringContainsString('include /etc/nginx/snippets/yaaff-app.conf;', $vhost);
+        // Pool domains are traffic-only: the generated vhost must hard-404 the
+        // admin panel and the management REST API (defense in depth).
+        $this->assertStringContainsString('location ^~ /admin { return 404; }', $vhost);
+        $this->assertStringContainsString('location ^~ /api/rest.php { return 404; }', $vhost);
+        $this->assertStringContainsString('location ^~ /api/openapi.php { return 404; }', $vhost);
     }
 
     public function testCloudflareUniversalSslRequestBuilders(): void

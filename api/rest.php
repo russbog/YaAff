@@ -12,8 +12,12 @@
 
 require_once __DIR__ . '/../settings.php';
 require_once __DIR__ . '/../db/db.php';
+require_once __DIR__ . '/../domainguard.php';
 require_once __DIR__ . '/ApiAuth.php';
 require_once __DIR__ . '/RestApi.php';
+
+// The management REST API is a system surface — not reachable on pool domains.
+deny_system_path_on_pool_domain();
 
 header('Content-Type: application/json; charset=utf-8');
 

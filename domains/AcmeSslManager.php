@@ -105,6 +105,13 @@ server {
     ssl_prefer_server_ciphers off;
 
     root {$root};
+
+    # Pool domains are traffic-only: the admin panel and the management REST API
+    # must not be reachable over them (defense in depth — the app 404s too).
+    location ^~ /admin { return 404; }
+    location ^~ /api/rest.php { return 404; }
+    location ^~ /api/openapi.php { return 404; }
+
     include {$snippet};
 }
 
