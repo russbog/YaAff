@@ -51,6 +51,18 @@ echo "==> Creating certificate directory ${CERT_DIR}"
 mkdir -p "${CERT_DIR}"
 chmod 700 "${CERT_DIR}"
 
+echo "==> Opening HTTPS port in firewall (if ufw is active)"
+# The server's :80 site already works, but a fresh ufw setup usually only allows
+# 22 and 80 — so the generated :443 vhost would be unreachable from the internet
+# even though nginx listens on it. Open 443 (and ensure 80) when ufw is active.
+if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -qi '^Status: active'; then
+  ufw allow 80/tcp  >/dev/null 2>&1 || true
+  ufw allow 443/tcp >/dev/null 2>&1 || true
+  echo "    ufw: 80/tcp and 443/tcp allowed"
+else
+  echo "    ufw inactive or absent; skipping (ensure 443/tcp is open in your firewall)"
+fi
+
 echo "==> Detecting PHP-FPM socket"
 # Prefer the distro 'alternatives' symlink — it always points at the active PHP.
 FPM_SOCK=""
