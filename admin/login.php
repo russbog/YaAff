@@ -28,13 +28,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html class="dark">
 <head>
     <title>YaAff Login</title>
     <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
-    <link rel="stylesheet" type="text/css" href="css/login.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+        // Match the SPA theme (admin-ui ThemeProvider stores 'yaaff-theme').
+        // Applied before paint to avoid a flash of the wrong theme.
+        (function () {
+            try {
+                var t = localStorage.getItem('yaaff-theme');
+                if (t !== 'light' && t !== 'dark') {
+                    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+                }
+                document.documentElement.classList.remove('dark', 'light');
+                document.documentElement.classList.add(t);
+            } catch (e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" type="text/css" href="css/login.css">
     <script>
         let lockoutActive = false;
         let lockoutTimer = null;
@@ -67,39 +81,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             lockoutTimer = setInterval(tick, 1000);
         }
 
+        function showError(msg) {
+            const el = document.getElementById('login-error');
+            if (!el) return;
+            el.textContent = msg;
+            el.classList.add('show');
+        }
+        function clearError() {
+            const el = document.getElementById('login-error');
+            if (el) el.classList.remove('show');
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.getElementById('login-form');
             const submitButton = form.querySelector('button[type="submit"]');
             const passwordInput = document.getElementById('password');
-            const fakeInput = document.getElementById('fake-input');
-            const cursor = document.getElementById('cursor');
 
-            // Focus input on page load
+            // Focus first field on page load
             const initialFocus = document.getElementById('username') || passwordInput;
             initialFocus.focus();
 
-            // Handle cursor blinking
-            let cursorVisible = true;
-            setInterval(() => {
-                cursorVisible = !cursorVisible;
-                cursor.textContent = cursorVisible ? '█' : '';
-            }, 530);
-
-            // Handle password input
-            passwordInput.addEventListener('input', function (e) {
-                const value = this.value;
-                fakeInput.textContent = 'X'.repeat(value.length);
-            });
-
-            // Keep focus on the real input (but allow the username field to take focus)
-            document.addEventListener('click', (e) => {
-                if (e.target && e.target.id === 'username') return;
-                passwordInput.focus();
-            });
-            fakeInput.addEventListener('click', (e) => {
-                e.preventDefault();
-                passwordInput.focus();
-            });
+            // Clear the error banner as soon as the user edits any field
+            form.addEventListener('input', clearError);
 
             // Handle form submission
             form.addEventListener('submit', async function (e) {
@@ -126,10 +129,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     } else if (data.locked) {
                         startLockout(data.retry_after);
                     } else {
-                        alert('Wrong password!');
+                        showError('Wrong password. Please try again.');
+                        passwordInput.value = '';
+                        passwordInput.focus();
                     }
                 } catch (error) {
-                    alert('Error occurred during login');
+                    showError('Something went wrong during login. Please retry.');
                 }
                 if (!lockoutActive) {
                     submitButton.disabled = false;
@@ -142,30 +147,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <?php $cloPath = get_cloaker_path(); ?>
 <body>
     <div id="main">
-        <div id="title" class="yaaff-login-brand">
+        <div class="yaaff-login-brand">
             <div class="yaaff-login-mark" aria-hidden="true">Y</div>
             <div>
                 <div class="yaaff-login-name">YaAff</div>
-                <div class="yaaff-login-subtitle">Affiliate traffic intelligence</div>
+                <div class="yaaff-login-subtitle">Command Center</div>
             </div>
         </div>
         <div class="login-container">
             <form id="login-form">
                 <h2>Welcome back</h2>
+                <p class="login-subtext">Sign in to your dashboard.</p>
+                <div id="login-error" class="login-error" role="alert"></div>
                 <?php if ($multiuser): ?>
                 <div class="input-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required autocomplete="username" />
+                    <input type="text" id="username" name="username" required autocomplete="username" placeholder="username" />
                 </div>
                 <?php endif; ?>
                 <div class="input-group">
-                    <label for="password"><?= $multiuser ? 'Password' : 'Enter Admin Password' ?></label>
-                    <div class="password-container">
-                        <input type="password" id="password" name="password" required autocomplete="off"/>
-                        <div class="fake-input-container">
-                            <span id="fake-input"></span><span id="cursor">█</span>
-                        </div>
-                    </div>
+                    <label for="password"><?= $multiuser ? 'Password' : 'Admin password' ?></label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••" />
                 </div>
                 <button type="submit" class="login-button">
                     <img src="<?= $cloPath ?>img/loading.apng" class="loading-img" alt="Loading..." />

@@ -11,7 +11,12 @@ require_once __DIR__ . '/Entity.php';
  * Common settings keys:
  *   type            string  regular | wildcard | alias
  *   alias_of        string  canonical host this alias resolves to (alias type)
- *   campaign_id     int     optional campaign this domain is reserved for
+ *   campaign_id     int     default ("index page") campaign for this domain:
+ *                           served at the domain root and used as the 404 target
+ *   intercept_404   bool    when true, unmatched paths fall back to the default
+ *                           campaign instead of showing the not-found stub
+ *   index_allowed   bool    when true, the domain is indexable (robots.txt
+ *                           allows crawling); defaults to false (disallow all)
  *   cf_zone_id      string  Cloudflare zone id (for DNS automation)
  *   cf_api_token    string  Cloudflare API token (secret; never logged)
  *   dns_type        string  A | CNAME (record created via Cloudflare)
@@ -55,7 +60,32 @@ class Domain extends Entity
     public function campaignId(): ?int
     {
         $id = $this->get('campaign_id');
-        return ($id === null || $id === '') ? null : (int)$id;
+        if ($id === null || $id === '' || (int)$id === 0) {
+            return null;
+        }
+        return (int)$id;
+    }
+
+    /**
+     * Default ("index page") campaign id for this domain, or null when unset.
+     * Served at the domain root and used as the target for 404 interception.
+     * Backed by the same `campaign_id` key as {@see campaignId()}.
+     */
+    public function defaultCampaignId(): ?int
+    {
+        return $this->campaignId();
+    }
+
+    /** Whether unmatched paths fall back to the default campaign (vs 404 stub). */
+    public function intercept404(): bool
+    {
+        return (bool)$this->get('intercept_404', false);
+    }
+
+    /** Whether crawlers may index this domain (robots.txt allow vs disallow). */
+    public function indexAllowed(): bool
+    {
+        return (bool)$this->get('index_allowed', false);
     }
 
     public function cfZoneId(): string

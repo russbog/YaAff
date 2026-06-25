@@ -10,14 +10,20 @@ if (str_ends_with($url, '/admin')) {
     exit();
 }
 
-//handle robots.txt requests
-if (isset($_SERVER['REQUEST_URI']) && str_ends_with($_SERVER['REQUEST_URI'], '/robots.txt')) {
+require_once __DIR__ . '/settings.php';
+
+//handle robots.txt requests — per-domain indexing toggle (domain pool).
+//A domain marked "index allowed" serves a permissive robots.txt; otherwise the
+//default is to disallow all crawling (unchanged behaviour for unknown domains).
+if (isset($_SERVER['REQUEST_URI']) && str_ends_with(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '', '/robots.txt')) {
+    require_once __DIR__ . '/db/db.php';
+    global $db;
+    $indexAllowed = $db->domain_index_allowed((string)($_SERVER['HTTP_HOST'] ?? ''));
     header('Content-Type: text/plain');
-    echo "User-agent: *\nDisallow: /\n";
+    echo $indexAllowed ? "User-agent: *\nDisallow:\n" : "User-agent: *\nDisallow: /\n";
     exit();
 }
 
-require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/cookies.php';
 require_once __DIR__ . '/directload.php';
 

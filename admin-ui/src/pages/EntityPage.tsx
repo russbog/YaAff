@@ -11,6 +11,7 @@ import { Menu } from '@/components/ui/Menu';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { DataTable } from '@/components/data/DataTable';
 import { EntityForm, type FieldValues } from '@/components/entity/EntityForm';
+import { DomainForm } from '@/components/domains/DomainForm';
 import { FileManager } from '@/components/files/FileManager';
 import { ZipUploadModal } from '@/components/files/ZipUploadModal';
 import { DomainToolsModal } from '@/components/domains/DomainToolsModal';
@@ -71,6 +72,20 @@ export function EntityPage({ type }: { type: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Bulk create (domains): one record per comma-separated hostname.
+  const bulkSaveMut = useMutation({
+    mutationFn: async (bodies: Record<string, unknown>[]) => {
+      for (const b of bodies) await entityApi.save(type, b);
+      return bodies.length;
+    },
+    onSuccess: (n) => {
+      toast.success(n > 1 ? `${n} domains saved` : `${schema?.singular ?? 'Item'} saved`);
+      setEditing(undefined);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const items = useMemo(() => {
     const all = data?.items ?? [];
     const q = search.trim().toLowerCase();
@@ -92,6 +107,34 @@ export function EntityPage({ type }: { type: string }) {
         cell: ({ row }) =>
           row.original.group ? <Badge tone="neutral">{row.original.group}</Badge> : <span className="text-faint">—</span>,
       },
+      ...(isDomains
+        ? [
+            {
+              id: 'config',
+              header: 'Config',
+              enableSorting: false,
+              cell: ({ row }: { row: { original: EntityRecord } }) => {
+                const s = (row.original.settings ?? {}) as {
+                  type?: string;
+                  index_allowed?: boolean;
+                  campaign_id?: number | string | null;
+                  intercept_404?: boolean;
+                };
+                const hasDefault = s.campaign_id != null && Number(s.campaign_id) > 0;
+                return (
+                  <div className="flex flex-wrap gap-1">
+                    {s.type && s.type !== 'regular' && <Badge tone="info">{s.type}</Badge>}
+                    <Badge tone={s.index_allowed ? 'success' : 'neutral'}>
+                      {s.index_allowed ? 'indexable' : 'noindex'}
+                    </Badge>
+                    {hasDefault && <Badge tone="brand">index page</Badge>}
+                    {s.intercept_404 && <Badge tone="warning">404→default</Badge>}
+                  </div>
+                );
+              },
+            } as ColumnDef<EntityRecord, unknown>,
+          ]
+        : []),
       {
         id: 'updated_at',
         header: 'Updated',
@@ -166,7 +209,27 @@ export function EntityPage({ type }: { type: string }) {
 
   const submit = () => {
     const body: Record<string, unknown> = { ...valuesRef.current };
-    if (editing) body.id = editing.id;
+    if (editing) {
+      body.id = editing.id;
+      saveMut.mutate(body);
+      return;
+    }
+    if (isDomains) {
+      const hosts = Array.from(
+        new Set(
+          String(body.name ?? '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+        ),
+      );
+      if (hosts.length === 0) {
+        toast.error('Enter at least one domain');
+        return;
+      }
+      bulkSaveMut.mutate(hosts.map((h) => ({ ...body, name: h })));
+      return;
+    }
     saveMut.mutate(body);
   };
 
@@ -235,19 +298,27 @@ export function EntityPage({ type }: { type: string }) {
             <Button variant="ghost" onClick={() => setEditing(undefined)}>
               Cancel
             </Button>
-            <Button variant="primary" loading={saveMut.isPending} onClick={submit} disabled={!canManage}>
+            <Button
+              variant="primary"
+              loading={saveMut.isPending || bulkSaveMut.isPending}
+              onClick={submit}
+              disabled={!canManage}
+            >
               Save
             </Button>
           </>
         }
       >
-        {editing !== undefined && (
-          <EntityForm
-            fields={schema.fields}
-            record={editing ?? null}
-            onValuesChange={(v) => (valuesRef.current = v)}
-          />
-        )}
+        {editing !== undefined &&
+          (isDomains ? (
+            <DomainForm record={editing ?? null} onValuesChange={(v) => (valuesRef.current = v)} />
+          ) : (
+            <EntityForm
+              fields={schema.fields}
+              record={editing ?? null}
+              onValuesChange={(v) => (valuesRef.current = v)}
+            />
+          ))}
       </Modal>
 
       {isLandings && (

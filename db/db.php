@@ -8,6 +8,7 @@ require_once __DIR__ . "/drivers/SqliteDriver.php";
 require_once __DIR__ . "/drivers/MysqlDriver.php";
 require_once __DIR__ . "/Migrator.php";
 require_once __DIR__ . "/../domains/DomainMatcher.php";
+require_once __DIR__ . "/../entities/Domain.php";
 
 class Db
 {
@@ -1279,10 +1280,118 @@ class Db
     {
         $identifier = $this->campaign_identifier_from_request();
         if ($identifier !== '') {
-            return $this->get_campaign_by_identifier($identifier);
+            $camp = $this->get_campaign_by_identifier($identifier);
+            if ($camp !== false) {
+                return $camp;
+            }
+            // Path carries an identifier that matches no campaign. Optionally
+            // intercept (treat as 404) and serve the domain's default campaign.
+            return $this->domain_pool_campaign(true);
         }
 
-        return $this->get_campaign_by_domain();
+        // Root request (no campaign identifier in the path).
+        $camp = $this->get_campaign_by_domain();
+        if ($camp !== false) {
+            return $camp;
+        }
+        // No campaign claims this domain at its root: fall back to the domain's
+        // default ("index page") campaign from the domain pool, when set.
+        return $this->domain_pool_campaign(false);
+    }
+
+    /**
+     * Resolve the current request host to its default-campaign behaviour from
+     * the domain pool. Returns the campaign row (settings decoded) when the
+     * matched pool domain has a default campaign and either this is a root
+     * request ($is404 = false) or 404 interception is enabled ($is404 = true).
+     * Returns false otherwise (caller then falls back to trafficback/404 stub).
+     */
+    private function domain_pool_campaign(bool $is404): array|bool
+    {
+        $host = $this->current_request_host();
+        if ($host === '') {
+            return false;
+        }
+        $domain = $this->get_domain_by_host($host);
+        if ($domain === null) {
+            return false;
+        }
+        $campId = $domain->defaultCampaignId();
+        if ($campId === null) {
+            return false;
+        }
+        if ($is404 && !$domain->intercept404()) {
+            return false;
+        }
+        return $this->get_campaign_by_id($campId);
+    }
+
+    /** Normalized host of the current request, with domain-pool alias resolution. */
+    public function current_request_host(): string
+    {
+        $cPath = get_cloaker_path(true, false);
+        $parsedUrl = parse_url($cPath);
+        if (!isset($parsedUrl['host'])) {
+            return '';
+        }
+        $domain = isset($parsedUrl['port'])
+            ? $parsedUrl['host'] . ":" . $parsedUrl['port']
+            : $parsedUrl['host'];
+        $aliasMap = $this->domain_alias_map();
+        return DomainMatcher::resolveAlias($aliasMap, $domain);
+    }
+
+    /**
+     * Find the pool {@see Domain} matching $host (exact or wildcard pattern),
+     * or null when the domains table is absent / no entry matches. Exact
+     * matches win over wildcard patterns.
+     */
+    public function get_domain_by_host(string $host): ?Domain
+    {
+        if (empty($this->driver->tableColumns('domains'))) {
+            return null;
+        }
+        $host = DomainMatcher::normalize($host);
+        if ($host === '') {
+            return null;
+        }
+        $rows = $this->driver->select("SELECT * FROM domains");
+        $wildcard = null;
+        foreach ($rows as $row) {
+            $name = DomainMatcher::normalize((string)($row['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            if ($name === $host) {
+                return new Domain($row);
+            }
+            if ($wildcard === null && strpos($name, '*') !== false
+                && DomainMatcher::matchesWildcard($name, $host)) {
+                $wildcard = $row;
+            }
+        }
+        return $wildcard === null ? null : new Domain($wildcard);
+    }
+
+    /** Whether the current request host allows crawler indexing (robots.txt). */
+    public function domain_index_allowed(string $host): bool
+    {
+        $domain = $this->get_domain_by_host(DomainMatcher::normalize($host));
+        return $domain !== null && $domain->indexAllowed();
+    }
+
+    /** Load a campaign row by id with its settings JSON decoded, or false. */
+    public function get_campaign_by_id(int $id): array|bool
+    {
+        $query = "SELECT * FROM campaigns WHERE id = :id";
+        $camp = $this->exec_read_query($query, [$id => DbDriver::INT], true);
+        if (empty($camp)) {
+            return false;
+        }
+        if (isset($camp['settings'])) {
+            $camp['settings'] = json_decode($camp['settings'], true);
+        }
+        return $camp;
     }
 
     private function campaign_identifier_from_request(): string

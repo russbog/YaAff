@@ -34,6 +34,13 @@ class CloakerAction
             case 'error':
                 http_response_code($this->value);
                 break;
+            case 'notfound':
+                http_response_code(404);
+                header('Content-Type: text/html; charset=utf-8');
+                echo "<!doctype html><html><head><meta charset=\"utf-8\"><title>404 Not Found</title></head>"
+                    . "<body style=\"font-family:system-ui,sans-serif;text-align:center;padding:80px 16px;color:#333\">"
+                    . "<h1 style=\"font-size:48px;margin:0\">404</h1><p>The page you requested was not found.</p></body></html>";
+                break;
             default:
                 die($this->value);
         }
