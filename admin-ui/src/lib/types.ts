@@ -28,6 +28,14 @@ export interface SchemaField {
   default?: unknown;
   options?: Record<string, string>;
   entity?: string;
+  /** Section heading this field belongs to; consecutive fields with the same section render under one header. */
+  section?: string;
+  /** Placeholder text for text/number/textarea inputs. */
+  placeholder?: string;
+  /** Conditional visibility: only show this field when values[field] is one of `in`. */
+  showIf?: { field: string; in: string[] };
+  /** Clickable insertable tokens shown beneath the field (for URL/postback/body templates). */
+  tokens?: string[];
 }
 
 export interface EntitySchema {

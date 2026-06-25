@@ -42,6 +42,12 @@ function entity_schemas(): array
         'custom_json'    => 'Custom JSON (configurable Content-Type)',
     ];
 
+    $currencyOptions = currency_options();
+    // Tokens substituted live in offer / landing destination URLs (shared TokenRegistry vocabulary).
+    $urlTokens = ['{clickid}', '{sub_id_1}', '{c.utm_source}', '{country}', '{device}', '{os}', '{userid}'];
+    // Tokens substituted live in outgoing S2S postbacks and Conversion API templates.
+    $postbackTokens = ['{clickid}', '{status}', '{payout}', '{revenue}', '{currency}', '{sub_id_1}', '{c.utm_source}', '{country}'];
+
     $schemas = [
         'networks' => [
             'title' => 'Networks',
@@ -50,11 +56,11 @@ function entity_schemas(): array
             'fields' => [
                 ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
                 ['key' => 'group', 'label' => 'Group', 'type' => 'text', 'help' => 'Optional folder; created automatically.'],
-                ['key' => 'currency', 'label' => 'Default currency', 'type' => 'text', 'default' => 'USD'],
-                ['key' => 'postback_url', 'label' => 'Incoming postback URL', 'type' => 'text', 'help' => 'Template you hand to the network, e.g. https://t.dom/postback.php?clickid={subid}&status={status}&payout={payout}'],
-                ['key' => 'status_map', 'label' => 'Status mapping', 'type' => 'kvlines', 'help' => 'One per line: external=internal. Internal: lead, sale, rejected, hold. Example: approved=sale'],
-                ['key' => 'offer_param', 'label' => 'Offer URL template', 'type' => 'text', 'help' => 'Optional template used when building offer URLs for this network.'],
-                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+                ['key' => 'currency', 'label' => 'Default currency', 'type' => 'select', 'options' => $currencyOptions, 'default' => 'USD', 'help' => 'Currency payouts arrive in; converted to your reporting currency.'],
+                ['key' => 'postback_url', 'label' => 'Incoming postback URL', 'type' => 'text', 'section' => 'Postback integration', 'placeholder' => 'https://your-domain/api/postback.php?clickid=REPLACE&status=REPLACE&payout=REPLACE', 'help' => 'Template you hand to the network. The network must call back with clickid (the {subid} you passed them), status and payout. Optional: currency, revenue, tid.'],
+                ['key' => 'status_map', 'label' => 'Status mapping', 'type' => 'kvlines', 'section' => 'Postback integration', 'help' => 'One per line: external=internal. Internal: lead, sale, rejected, hold. Example: approved=sale'],
+                ['key' => 'offer_param', 'label' => 'Offer URL template', 'type' => 'text', 'section' => 'Postback integration', 'help' => 'Optional template used when building offer URLs for this network.', 'tokens' => $urlTokens],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea', 'section' => 'Advanced'],
             ],
         ],
         'sources' => [
@@ -64,12 +70,12 @@ function entity_schemas(): array
             'fields' => [
                 ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
                 ['key' => 'group', 'label' => 'Group', 'type' => 'text'],
-                ['key' => 'param_map', 'label' => 'Parameter mapping', 'type' => 'json', 'help' => 'JSON list of {"alias":"sub1","token":"sub_id_1","macro":"{{campaign.id}}"}'],
-                ['key' => 'postback_url', 'label' => 'Outgoing S2S postback URL', 'type' => 'text', 'help' => 'Sent back to the source on conversion. Tokens allowed.'],
-                ['key' => 'postback_statuses', 'label' => 'Postback statuses', 'type' => 'csv', 'help' => 'Comma-separated internal statuses that fire the postback, e.g. lead,sale'],
-                ['key' => 'cost_param', 'label' => 'Cost query param', 'type' => 'text', 'help' => 'Incoming param carrying click cost.'],
-                ['key' => 'cost_currency', 'label' => 'Cost currency', 'type' => 'text', 'default' => 'USD'],
-                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+                ['key' => 'param_map', 'label' => 'Parameter mapping', 'type' => 'json', 'section' => 'Parameters', 'help' => 'JSON list of {"alias":"sub1","token":"sub_id_1","macro":"{{campaign.id}}"}'],
+                ['key' => 'cost_param', 'label' => 'Cost query param', 'type' => 'text', 'section' => 'Cost tracking', 'help' => 'Incoming param carrying click cost, e.g. cost or price.'],
+                ['key' => 'cost_currency', 'label' => 'Cost currency', 'type' => 'select', 'options' => $currencyOptions, 'default' => 'USD', 'section' => 'Cost tracking', 'help' => 'Currency of the incoming cost value; converted to your reporting currency.'],
+                ['key' => 'postback_url', 'label' => 'Outgoing S2S postback URL', 'type' => 'text', 'section' => 'Postback', 'placeholder' => 'https://source.com/postback?cid={clickid}&status={status}&payout={payout}', 'help' => 'Fired back to the source on conversion. Tokens below are substituted live.', 'tokens' => $postbackTokens],
+                ['key' => 'postback_statuses', 'label' => 'Postback statuses', 'type' => 'csv', 'section' => 'Postback', 'help' => 'Comma-separated internal statuses that fire the postback, e.g. lead,sale'],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea', 'section' => 'Advanced'],
             ],
         ],
         'offers' => [
@@ -79,19 +85,19 @@ function entity_schemas(): array
             'fields' => [
                 ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
                 ['key' => 'group', 'label' => 'Group', 'type' => 'text'],
-                ['key' => 'network_id', 'label' => 'Network', 'type' => 'entityref', 'entity' => 'networks'],
+                ['key' => 'network_id', 'label' => 'Network', 'type' => 'entityref', 'entity' => 'networks', 'help' => 'Links payout currency and postback handling.'],
                 ['key' => 'type', 'label' => 'Type', 'type' => 'select', 'options' => ['redirect' => 'Redirect (remote URL)', 'local' => 'Local landing'], 'default' => 'redirect'],
-                ['key' => 'url', 'label' => 'Target URL', 'type' => 'text', 'help' => 'For redirect offers. Tokens allowed, e.g. https://offer.com/?clickid={subid}'],
-                ['key' => 'redirect_type', 'label' => 'Redirect type', 'type' => 'select', 'options' => $redirectTypes, 'default' => 'http_302'],
-                ['key' => 'payout', 'label' => 'Payout', 'type' => 'number', 'default' => 0],
-                ['key' => 'payout_type', 'label' => 'Payout type', 'type' => 'select', 'options' => ['cpa' => 'CPA', 'cpc' => 'CPC', 'cpl' => 'CPL', 'revshare' => 'RevShare'], 'default' => 'cpa'],
-                ['key' => 'payout_param', 'label' => 'Dynamic payout param', 'type' => 'text', 'help' => 'Optional query param to read payout from at conversion time.'],
-                ['key' => 'currency', 'label' => 'Currency', 'type' => 'text', 'default' => 'USD'],
                 ['key' => 'geo', 'label' => 'Geo', 'type' => 'text', 'help' => 'Free-form geo note, e.g. US, CA.'],
-                ['key' => 'cap_daily', 'label' => 'Daily cap', 'type' => 'number', 'default' => 0, 'help' => '0 = unlimited'],
-                ['key' => 'cap_total', 'label' => 'Total cap', 'type' => 'number', 'default' => 0, 'help' => '0 = unlimited'],
-                ['key' => 'multi_values', 'label' => 'Extra token values', 'type' => 'kvlines', 'help' => 'One per line: name=value. Exposed as {offer_value:name}.'],
-                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+                ['key' => 'url', 'label' => 'Target URL', 'type' => 'text', 'section' => 'Destination', 'showIf' => ['field' => 'type', 'in' => ['redirect']], 'placeholder' => 'https://offer.com/?clickid={clickid}', 'help' => 'Where the click is sent. Tokens below are substituted live.', 'tokens' => $urlTokens],
+                ['key' => 'redirect_type', 'label' => 'Redirect type', 'type' => 'select', 'options' => $redirectTypes, 'default' => 'http_302', 'section' => 'Destination', 'showIf' => ['field' => 'type', 'in' => ['redirect']]],
+                ['key' => 'payout', 'label' => 'Payout', 'type' => 'number', 'default' => 0, 'section' => 'Payout'],
+                ['key' => 'payout_type', 'label' => 'Payout type', 'type' => 'select', 'options' => ['cpa' => 'CPA — per action', 'cpc' => 'CPC — per click', 'cpl' => 'CPL — per lead', 'revshare' => 'RevShare — % of revenue'], 'default' => 'cpa', 'section' => 'Payout'],
+                ['key' => 'currency', 'label' => 'Currency', 'type' => 'select', 'options' => $currencyOptions, 'default' => 'USD', 'section' => 'Payout'],
+                ['key' => 'payout_param', 'label' => 'Dynamic payout param', 'type' => 'text', 'section' => 'Payout', 'help' => 'Optional query param to read payout from at conversion time (overrides the fixed value).'],
+                ['key' => 'cap_daily', 'label' => 'Daily cap', 'type' => 'number', 'default' => 0, 'section' => 'Caps & limits', 'help' => 'Max conversions per day. 0 = unlimited.'],
+                ['key' => 'cap_total', 'label' => 'Total cap', 'type' => 'number', 'default' => 0, 'section' => 'Caps & limits', 'help' => 'Max conversions lifetime. 0 = unlimited.'],
+                ['key' => 'multi_values', 'label' => 'Extra token values', 'type' => 'kvlines', 'section' => 'Advanced', 'help' => 'One per line: name=value. Exposed as {offer_value:name}.'],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea', 'section' => 'Advanced'],
             ],
         ],
         'landings' => [
@@ -102,11 +108,11 @@ function entity_schemas(): array
                 ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
                 ['key' => 'group', 'label' => 'Group', 'type' => 'text'],
                 ['key' => 'type', 'label' => 'Type', 'type' => 'select', 'options' => ['local' => 'Local (uploaded folder)', 'remote' => 'Remote URL'], 'default' => 'local'],
-                ['key' => 'path', 'label' => 'Local folder', 'type' => 'text', 'help' => 'Folder name of an uploaded landing (local type).'],
-                ['key' => 'url', 'label' => 'Remote URL', 'type' => 'text', 'help' => 'For remote landings. Tokens allowed.'],
-                ['key' => 'redirect_type', 'label' => 'Redirect type', 'type' => 'select', 'options' => $redirectTypes, 'default' => 'http_302'],
-                ['key' => 'protect', 'label' => 'Bot protection / cloak', 'type' => 'checkbox', 'default' => false],
-                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+                ['key' => 'path', 'label' => 'Local folder', 'type' => 'text', 'section' => 'Source', 'showIf' => ['field' => 'type', 'in' => ['local']], 'help' => 'Folder name of an uploaded landing. Upload a ZIP from the Landings toolbar, then pick its folder here.'],
+                ['key' => 'url', 'label' => 'Remote URL', 'type' => 'text', 'section' => 'Source', 'showIf' => ['field' => 'type', 'in' => ['remote']], 'placeholder' => 'https://landing.com/?clickid={clickid}', 'help' => 'Where the visitor is sent for a remote landing. Tokens below are substituted live.', 'tokens' => $urlTokens],
+                ['key' => 'redirect_type', 'label' => 'Redirect type', 'type' => 'select', 'options' => $redirectTypes, 'default' => 'http_302', 'section' => 'Source', 'showIf' => ['field' => 'type', 'in' => ['remote']]],
+                ['key' => 'protect', 'label' => 'Bot protection / cloak', 'type' => 'checkbox', 'default' => false, 'section' => 'Protection', 'help' => 'Route detected bots to the safe page instead of this landing.'],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea', 'section' => 'Advanced'],
             ],
         ],
         'integrations' => [
@@ -118,13 +124,13 @@ function entity_schemas(): array
                 ['key' => 'group', 'label' => 'Group', 'type' => 'text'],
                 ['key' => 'type', 'label' => 'Preset type', 'type' => 'select', 'options' => ['generic' => 'Generic HTTP', 'fb_capi' => 'Facebook CAPI', 'google' => 'Google / GA4', 'tiktok' => 'TikTok'], 'default' => 'generic'],
                 ['key' => 'enabled', 'label' => 'Enabled', 'type' => 'checkbox', 'default' => true],
-                ['key' => 'method', 'label' => 'HTTP method', 'type' => 'select', 'options' => ['POST' => 'POST', 'GET' => 'GET'], 'default' => 'POST'],
-                ['key' => 'url', 'label' => 'Endpoint URL', 'type' => 'text', 'help' => 'Tokens allowed: {clickid} {status} {payout} {currency} {time} {ip} {ua} {c.PARAM} {sub_id_N}'],
-                ['key' => 'content_type', 'label' => 'Content-Type', 'type' => 'text', 'default' => 'application/json'],
-                ['key' => 'headers', 'label' => 'Headers', 'type' => 'kvlines', 'help' => 'One per line: Header-Name=value (tokens allowed).'],
-                ['key' => 'body', 'label' => 'Body template', 'type' => 'textarea', 'help' => 'Raw request body with {token} placeholders (JSON or form-encoded).'],
-                ['key' => 'statuses', 'label' => 'Fire on statuses', 'type' => 'csv', 'help' => 'Comma-separated internal statuses, e.g. Lead,Purchase. Empty = all.'],
-                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+                ['key' => 'method', 'label' => 'HTTP method', 'type' => 'select', 'options' => ['POST' => 'POST', 'GET' => 'GET'], 'default' => 'POST', 'section' => 'Request'],
+                ['key' => 'url', 'label' => 'Endpoint URL', 'type' => 'text', 'section' => 'Request', 'help' => 'Where conversions are posted. Tokens below are substituted live.', 'tokens' => $postbackTokens],
+                ['key' => 'content_type', 'label' => 'Content-Type', 'type' => 'text', 'default' => 'application/json', 'section' => 'Request'],
+                ['key' => 'headers', 'label' => 'Headers', 'type' => 'kvlines', 'section' => 'Request', 'help' => 'One per line: Header-Name=value (tokens allowed).'],
+                ['key' => 'body', 'label' => 'Body template', 'type' => 'textarea', 'section' => 'Request', 'placeholder' => '{"event":"purchase","value":{payout},"currency":"{currency}","click_id":"{clickid}"}', 'help' => 'Raw request body with {token} placeholders (JSON or form-encoded). Use the tokens above.'],
+                ['key' => 'statuses', 'label' => 'Fire on statuses', 'type' => 'csv', 'section' => 'Trigger', 'help' => 'Comma-separated internal statuses, e.g. Lead,Purchase. Empty = all.'],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea', 'section' => 'Advanced'],
             ],
         ],
         'domains' => [
@@ -175,19 +181,19 @@ function entity_schemas(): array
                 ['key' => 'type', 'label' => 'Type', 'type' => 'select', 'options' => ['telegram' => 'Telegram', 'webhook' => 'Webhook', 'email' => 'Email'], 'default' => 'telegram'],
                 ['key' => 'enabled', 'label' => 'Enabled', 'type' => 'checkbox', 'default' => true],
                 ['key' => 'events', 'label' => 'Events', 'type' => 'csv', 'help' => 'Comma-separated event names this channel listens to (e.g. rule). Empty = all events.'],
-                ['key' => 'message', 'label' => 'Message template', 'type' => 'textarea', 'help' => 'Body/text with {token} placeholders, e.g. "Rule {rule} fired: ROI {roi}%". Tokens: {event} {rule} {campaign} {time} plus all metrics.'],
-                ['key' => 'bot_token', 'label' => 'Telegram bot token', 'type' => 'text', 'help' => 'Telegram type only. Secret; never logged.'],
-                ['key' => 'chat_id', 'label' => 'Telegram chat id', 'type' => 'text', 'help' => 'Telegram type only.'],
-                ['key' => 'parse_mode', 'label' => 'Telegram parse mode', 'type' => 'select', 'options' => ['HTML' => 'HTML', 'Markdown' => 'Markdown', '' => 'None'], 'default' => 'HTML'],
-                ['key' => 'url', 'label' => 'Webhook URL', 'type' => 'text', 'help' => 'Webhook type only. Tokens allowed.'],
-                ['key' => 'method', 'label' => 'Webhook method', 'type' => 'select', 'options' => ['POST' => 'POST', 'GET' => 'GET'], 'default' => 'POST'],
-                ['key' => 'headers', 'label' => 'Webhook headers', 'type' => 'kvlines', 'help' => 'One per line: Header-Name=value (tokens allowed).'],
-                ['key' => 'body', 'label' => 'Webhook body', 'type' => 'textarea', 'help' => 'Raw body template. Empty = use message template.'],
-                ['key' => 'content_type', 'label' => 'Webhook Content-Type', 'type' => 'text', 'default' => 'application/json'],
-                ['key' => 'to', 'label' => 'Email to', 'type' => 'text', 'help' => 'Email type only. Comma-separated recipients.'],
-                ['key' => 'from', 'label' => 'Email from', 'type' => 'text', 'help' => 'Email type only.'],
-                ['key' => 'subject', 'label' => 'Email subject', 'type' => 'text', 'default' => 'YaAff notification', 'help' => 'Tokens allowed.'],
-                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea'],
+                ['key' => 'message', 'label' => 'Message template', 'type' => 'textarea', 'help' => 'Body/text with {token} placeholders, e.g. "Rule {rule} fired: ROI {roi}%".', 'tokens' => ['{event}', '{rule}', '{campaign}', '{roi}', '{revenue}', '{profit}', '{clicks}', '{time}']],
+                ['key' => 'bot_token', 'label' => 'Telegram bot token', 'type' => 'text', 'section' => 'Telegram', 'showIf' => ['field' => 'type', 'in' => ['telegram']], 'help' => 'Secret; never logged.'],
+                ['key' => 'chat_id', 'label' => 'Telegram chat id', 'type' => 'text', 'section' => 'Telegram', 'showIf' => ['field' => 'type', 'in' => ['telegram']]],
+                ['key' => 'parse_mode', 'label' => 'Telegram parse mode', 'type' => 'select', 'options' => ['HTML' => 'HTML', 'Markdown' => 'Markdown', '' => 'None'], 'default' => 'HTML', 'section' => 'Telegram', 'showIf' => ['field' => 'type', 'in' => ['telegram']]],
+                ['key' => 'url', 'label' => 'Webhook URL', 'type' => 'text', 'section' => 'Webhook', 'showIf' => ['field' => 'type', 'in' => ['webhook']], 'help' => 'Tokens allowed.', 'tokens' => ['{event}', '{rule}', '{campaign}', '{roi}']],
+                ['key' => 'method', 'label' => 'Webhook method', 'type' => 'select', 'options' => ['POST' => 'POST', 'GET' => 'GET'], 'default' => 'POST', 'section' => 'Webhook', 'showIf' => ['field' => 'type', 'in' => ['webhook']]],
+                ['key' => 'headers', 'label' => 'Webhook headers', 'type' => 'kvlines', 'section' => 'Webhook', 'showIf' => ['field' => 'type', 'in' => ['webhook']], 'help' => 'One per line: Header-Name=value (tokens allowed).'],
+                ['key' => 'body', 'label' => 'Webhook body', 'type' => 'textarea', 'section' => 'Webhook', 'showIf' => ['field' => 'type', 'in' => ['webhook']], 'help' => 'Raw body template. Empty = use message template.'],
+                ['key' => 'content_type', 'label' => 'Webhook Content-Type', 'type' => 'text', 'default' => 'application/json', 'section' => 'Webhook', 'showIf' => ['field' => 'type', 'in' => ['webhook']]],
+                ['key' => 'to', 'label' => 'Email to', 'type' => 'text', 'section' => 'Email', 'showIf' => ['field' => 'type', 'in' => ['email']], 'help' => 'Comma-separated recipients.'],
+                ['key' => 'from', 'label' => 'Email from', 'type' => 'text', 'section' => 'Email', 'showIf' => ['field' => 'type', 'in' => ['email']]],
+                ['key' => 'subject', 'label' => 'Email subject', 'type' => 'text', 'default' => 'YaAff notification', 'section' => 'Email', 'showIf' => ['field' => 'type', 'in' => ['email']], 'help' => 'Tokens allowed.'],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'textarea', 'section' => 'Advanced'],
             ],
         ],
         'roles' => [
@@ -223,4 +229,35 @@ function entity_schemas(): array
 function entity_schema(string $type): ?array
 {
     return entity_schemas()[$type] ?? null;
+}
+
+/**
+ * Catalog of common ISO-4217 currencies for payout/cost selects.
+ *
+ * @return array<string,string> code => "CODE — Name"
+ */
+function currency_options(): array
+{
+    $codes = [
+        'USD' => 'US Dollar', 'EUR' => 'Euro', 'GBP' => 'British Pound', 'RUB' => 'Russian Ruble',
+        'UAH' => 'Ukrainian Hryvnia', 'KZT' => 'Kazakhstani Tenge', 'TRY' => 'Turkish Lira',
+        'BRL' => 'Brazilian Real', 'MXN' => 'Mexican Peso', 'ARS' => 'Argentine Peso',
+        'COP' => 'Colombian Peso', 'CLP' => 'Chilean Peso', 'PEN' => 'Peruvian Sol',
+        'INR' => 'Indian Rupee', 'IDR' => 'Indonesian Rupiah', 'PHP' => 'Philippine Peso',
+        'VND' => 'Vietnamese Dong', 'THB' => 'Thai Baht', 'MYR' => 'Malaysian Ringgit',
+        'SGD' => 'Singapore Dollar', 'HKD' => 'Hong Kong Dollar', 'JPY' => 'Japanese Yen',
+        'CNY' => 'Chinese Yuan', 'KRW' => 'South Korean Won', 'AUD' => 'Australian Dollar',
+        'NZD' => 'New Zealand Dollar', 'CAD' => 'Canadian Dollar', 'CHF' => 'Swiss Franc',
+        'PLN' => 'Polish Zloty', 'CZK' => 'Czech Koruna', 'SEK' => 'Swedish Krona',
+        'NOK' => 'Norwegian Krone', 'DKK' => 'Danish Krone', 'RON' => 'Romanian Leu',
+        'HUF' => 'Hungarian Forint', 'BGN' => 'Bulgarian Lev', 'ZAR' => 'South African Rand',
+        'NGN' => 'Nigerian Naira', 'EGP' => 'Egyptian Pound', 'SAR' => 'Saudi Riyal',
+        'AED' => 'UAE Dirham', 'ILS' => 'Israeli Shekel', 'PKR' => 'Pakistani Rupee',
+        'BDT' => 'Bangladeshi Taka',
+    ];
+    $out = [];
+    foreach ($codes as $code => $name) {
+        $out[$code] = "$code — $name";
+    }
+    return $out;
 }
