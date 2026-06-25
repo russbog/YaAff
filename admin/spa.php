@@ -70,22 +70,49 @@ function spa_geobases(): array
     return ['version' => $version, 'missing' => $missing, 'source' => $source];
 }
 
-/** Stat fields exposed to the campaigns table, with display metadata. */
+/**
+ * Catalog of statistic columns offered across the SPA (campaigns grid, reports,
+ * column picker). Each entry carries display metadata so the front-end can group,
+ * describe and format columns consistently:
+ *   - field   : SQL alias produced by Db::get_stats_select_parts()
+ *   - title   : short column label
+ *   - kind    : 'int' | 'pct' | 'money' (drives number formatting)
+ *   - cat     : grouping category for the column picker
+ *   - desc    : helper tooltip shown on the column header
+ *   - better  : 'high' | 'low' — which direction is good (for tone coding); omit if neutral
+ *   - default : false to keep the column hidden until the user enables it (defaults to true)
+ * Every field here must be computable by Db::get_stats_select_parts().
+ */
 function spa_stat_fields(): array
 {
     return [
-        ['field' => 'clicks',      'title' => 'Clicks',      'kind' => 'int'],
-        ['field' => 'uniques',     'title' => 'Uniques',     'kind' => 'int'],
-        ['field' => 'uniques_ratio', 'title' => 'Unique %',  'kind' => 'pct'],
-        ['field' => 'conversion',  'title' => 'Conversions', 'kind' => 'int'],
-        ['field' => 'purchase',    'title' => 'Sales',       'kind' => 'int'],
-        ['field' => 'cra',         'title' => 'CR (all)',    'kind' => 'pct'],
-        ['field' => 'epc',         'title' => 'EPC',         'kind' => 'money'],
-        ['field' => 'cpc',         'title' => 'CPC',         'kind' => 'money'],
-        ['field' => 'revenue',     'title' => 'Revenue',     'kind' => 'money'],
-        ['field' => 'costs',       'title' => 'Costs',       'kind' => 'money'],
-        ['field' => 'profit',      'title' => 'Profit',      'kind' => 'money'],
-        ['field' => 'roi',         'title' => 'ROI',         'kind' => 'pct'],
+        // Volume
+        ['field' => 'clicks',        'title' => 'Clicks',     'kind' => 'int',   'cat' => 'Volume',      'desc' => 'Total clicks (visits) in the period.',                       'better' => 'high'],
+        ['field' => 'uniques',       'title' => 'Uniques',    'kind' => 'int',   'cat' => 'Volume',      'desc' => 'Unique visitors (distinct user id).',                        'better' => 'high'],
+        ['field' => 'uniques_ratio', 'title' => 'Unique %',   'kind' => 'pct',   'cat' => 'Volume',      'desc' => 'Share of unique visitors among all clicks.',                 'better' => 'high'],
+        // Conversions
+        ['field' => 'conversion',    'title' => 'Conversions','kind' => 'int',   'cat' => 'Conversions', 'desc' => 'Clicks that produced any postback status.',                  'better' => 'high'],
+        ['field' => 'purchase',      'title' => 'Sales',      'kind' => 'int',   'cat' => 'Conversions', 'desc' => 'Conversions with status "Purchase".',                        'better' => 'high'],
+        ['field' => 'hold',          'title' => 'Leads',      'kind' => 'int',   'cat' => 'Conversions', 'desc' => 'Conversions with status "Lead" (on hold).',                  'better' => 'high', 'default' => false],
+        ['field' => 'reject',        'title' => 'Rejected',   'kind' => 'int',   'cat' => 'Conversions', 'desc' => 'Conversions with status "Reject".',                          'better' => 'low',  'default' => false],
+        ['field' => 'trash',         'title' => 'Trash',      'kind' => 'int',   'cat' => 'Conversions', 'desc' => 'Conversions with status "Trash".',                           'better' => 'low',  'default' => false],
+        // Rates
+        ['field' => 'cra',           'title' => 'CR (all)',   'kind' => 'pct',   'cat' => 'Rates',       'desc' => 'Conversion rate: conversions / clicks.',                     'better' => 'high'],
+        ['field' => 'crs',           'title' => 'CR (sales)', 'kind' => 'pct',   'cat' => 'Rates',       'desc' => 'Sales conversion rate: sales / clicks.',                     'better' => 'high', 'default' => false],
+        ['field' => 'app',           'title' => 'Approve %',  'kind' => 'pct',   'cat' => 'Rates',       'desc' => 'Approved sales as a share of all conversions.',              'better' => 'high', 'default' => false],
+        ['field' => 'appt',          'title' => 'Approve % (ex. trash)', 'kind' => 'pct', 'cat' => 'Rates', 'desc' => 'Approved sales as a share of conversions, excluding trash.', 'better' => 'high', 'default' => false],
+        // Cost
+        ['field' => 'cpc',           'title' => 'CPC',        'kind' => 'money', 'cat' => 'Cost',        'desc' => 'Cost per click: cost / clicks.',                             'better' => 'low'],
+        ['field' => 'ucpc',          'title' => 'uCPC',       'kind' => 'money', 'cat' => 'Cost',        'desc' => 'Cost per unique click: cost / uniques.',                     'better' => 'low',  'default' => false],
+        ['field' => 'cpa',           'title' => 'CPA',        'kind' => 'money', 'cat' => 'Cost',        'desc' => 'Cost per conversion: cost / conversions.',                   'better' => 'low',  'default' => false],
+        ['field' => 'costs',         'title' => 'Cost',       'kind' => 'money', 'cat' => 'Cost',        'desc' => 'Total traffic cost in the period.',                          'better' => 'low'],
+        // Earnings
+        ['field' => 'epc',           'title' => 'EPC',        'kind' => 'money', 'cat' => 'Earnings',    'desc' => 'Earnings per click: revenue / clicks.',                      'better' => 'high'],
+        ['field' => 'uepc',          'title' => 'uEPC',       'kind' => 'money', 'cat' => 'Earnings',    'desc' => 'Earnings per unique click: revenue / uniques.',              'better' => 'high', 'default' => false],
+        ['field' => 'ec',            'title' => 'EC',         'kind' => 'money', 'cat' => 'Earnings',    'desc' => 'Earnings per conversion: revenue / conversions.',            'better' => 'high', 'default' => false],
+        ['field' => 'revenue',       'title' => 'Revenue',    'kind' => 'money', 'cat' => 'Earnings',    'desc' => 'Total payout earned in the period.',                         'better' => 'high'],
+        ['field' => 'profit',        'title' => 'Profit',     'kind' => 'money', 'cat' => 'Earnings',    'desc' => 'Revenue minus cost.',                                        'better' => 'high'],
+        ['field' => 'roi',           'title' => 'ROI',        'kind' => 'pct',   'cat' => 'Earnings',    'desc' => 'Return on investment: profit / cost.',                       'better' => 'high'],
     ];
 }
 

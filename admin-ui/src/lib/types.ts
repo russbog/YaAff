@@ -9,6 +9,14 @@ export interface StatField {
   field: string;
   title: string;
   kind: 'int' | 'pct' | 'money';
+  /** Grouping category for the column picker (e.g. Volume, Conversions, Rates, Cost, Earnings). */
+  cat?: string;
+  /** Helper tooltip shown on the column header. */
+  desc?: string;
+  /** Which direction is good — drives profit/ROI tone coding. Omit if neutral. */
+  better?: 'high' | 'low';
+  /** When false, the column is hidden until the user enables it. Defaults to true. */
+  default?: boolean;
 }
 
 export interface SchemaField {

@@ -28,7 +28,9 @@ import { useToast } from '@/providers/ToastProvider';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useBootstrap, useCan } from '@/providers/BootstrapProvider';
 import { spa, campaignApi } from '@/lib/api';
-import { fmtStat, toNumber } from '@/lib/format';
+import { fmtStat, fmtStatFull, metricTone, toNumber } from '@/lib/format';
+import { defaultStatFields } from '@/lib/metrics';
+import { cn } from '@/lib/cn';
 import { downloadCsv } from '@/lib/csv';
 import type { CampaignRow, StatField } from '@/lib/types';
 
@@ -57,16 +59,17 @@ export function CampaignsPage() {
     return Array.isArray(c) ? (c as string[]) : null;
   }, [commonSettings]);
 
-  // Apply the saved show/hide + order to the available stat fields.
+  // Apply the saved show/hide + order to the available stat fields. With no
+  // saved layout, fall back to the catalog's default-visible columns.
   const visibleStatFields = useMemo<StatField[]>(() => {
-    if (!savedColumns) return statFields;
+    if (!savedColumns) return defaultStatFields(statFields);
     const byField = new Map(statFields.map((f) => [f.field, f]));
     const out: StatField[] = [];
     for (const key of savedColumns) {
       const f = byField.get(key);
       if (f) out.push(f);
     }
-    return out.length ? out : statFields;
+    return out.length ? out : defaultStatFields(statFields);
   }, [savedColumns, statFields]);
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -177,10 +180,20 @@ export function CampaignsPage() {
     };
     const statCols: ColumnDef<CampaignRow, unknown>[] = visibleStatFields.map((f) => ({
       id: f.field,
-      header: f.title,
+      header: () => <span title={f.desc}>{f.title}</span>,
       accessorFn: (r) => toNumber(r[f.field]),
       sortingFn: 'basic',
-      cell: ({ row }) => <span className="tabular-nums text-fg/90">{fmtStat(row.original[f.field], f.kind)}</span>,
+      cell: ({ row }) => {
+        const v = row.original[f.field];
+        return (
+          <span
+            className={cn('tabular-nums', metricTone(f.field, v) || 'text-fg/90')}
+            title={fmtStatFull(v, f.kind)}
+          >
+            {fmtStat(v, f.kind)}
+          </span>
+        );
+      },
     }));
     const actionsCol: ColumnDef<CampaignRow, unknown> = {
       id: 'actions',
