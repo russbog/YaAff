@@ -57,8 +57,16 @@ export interface BootstrapResponse {
   campaignsList: { id: number; name: string }[];
   timezones: TimezoneOption[] | Record<string, string>;
   statFields: StatField[];
+  groupByDims?: GroupByDim[];
   trafficBackUrl: string;
   geoBases?: GeoBasesInfo;
+}
+
+/** A grouping dimension offered by the custom report builder. */
+export interface GroupByDim {
+  field: string;
+  label: string;
+  desc?: string;
 }
 
 export interface GeoBasesInfo {
@@ -126,6 +134,23 @@ export interface DashboardResponse {
   series: SeriesPoint[];
   top_country: TopRow[];
   top_flow: TopRow[];
+}
+
+/** A node in the nested report tree returned by the report endpoint. */
+export interface ReportNode {
+  group?: string | number;
+  _children?: ReportNode[];
+  [stat: string]: unknown;
+}
+
+export interface ReportResponse {
+  ok: true;
+  tree: ReportNode[];
+  groupBy: string[];
+  fields: string[];
+  dimensions: GroupByDim[];
+  statFields: StatField[];
+  range: { start: number; end: number; tz: string };
 }
 
 export interface ClicksQuery {
