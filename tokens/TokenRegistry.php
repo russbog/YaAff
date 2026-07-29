@@ -84,9 +84,10 @@ class TokenRegistry
 
         return match (true) {
             // A leading underscore forces the incoming query param, bypassing
-            // built-in tokens: {_domain} reads ?domain=... even though bare
-            // {domain} resolves to the host serving the redirect.
-            strlen($token) > 1 && $token[0] === '_' => $this->customParam(substr($token, 1)),
+            // built-in tokens and click columns: {_domain} reads ?domain=...
+            // even though bare {domain} resolves to the host serving the
+            // redirect (which is also stored as the click's `domain` column).
+            strlen($token) > 1 && $token[0] === '_' => $this->queryParam(substr($token, 1)),
             $token === 'clickid' => $this->clickid,
             $token === 'userid'  => $this->userid,
             $token === 'domain'  => $_SERVER['HTTP_HOST'] ?? null,
@@ -272,6 +273,20 @@ class TokenRegistry
             : null;
     }
 
+    /** Incoming query param only — never falls back to click columns. */
+    private function queryParam(string $name): ?string
+    {
+        $params = $this->params();
+        if (array_key_exists($name, $params) && is_scalar($params[$name])) {
+            return (string)$params[$name];
+        }
+        $this->ensureClickData();
+        $params = $this->params();
+        return array_key_exists($name, $params) && is_scalar($params[$name])
+            ? (string)$params[$name]
+            : null;
+    }
+
     private function customParam(string $name): ?string
     {
         $params = $this->params();
@@ -314,7 +329,14 @@ class TokenRegistry
             $decoded = json_decode($raw, true);
             $raw = is_array($decoded) ? $decoded : [];
         }
-        $this->paramsCache = is_array($raw) ? $raw : [];
+        $params = is_array($raw) ? $raw : [];
+        // Live redirects carry the parsed request query under 'qs' (see
+        // YWBCore::get_click_params()); stored clicks persist it as 'params'.
+        $qs = $this->click['qs'] ?? [];
+        if (is_array($qs)) {
+            $params = $qs + $params;
+        }
+        $this->paramsCache = $params;
         return $this->paramsCache;
     }
 
