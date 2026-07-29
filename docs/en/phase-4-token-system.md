@@ -55,6 +55,7 @@ A registry is constructed around one click:
 | `{px}` | `px` cookie |
 | `{ip}` `{country}` `{region}` `{city}` `{lang}` `{os}` `{osver}` `{client}` `{clientver}` `{device}` `{brand}` `{model}` `{isp}` `{connection_type}` `{ua}` `{status}` | click columns |
 | `{c.NAME}` | custom click param `NAME` |
+| `{_NAME}` | forces the incoming query param `NAME`, bypassing built-in tokens (e.g. `{_domain}` reads `?domain=...` instead of the redirect host) |
 | `{sub1}` … `{subN}`, `{sub_id_N}` | click param of the same name (Keitaro-style) |
 | `{hash:TOKEN}` | md5 of another token's value |
 | `{random:A-B}` | random integer in `[A, B]` |
@@ -75,8 +76,9 @@ $r->render('id={clickid}&g={country}');  // inline substitution, unknown left in
 $r->toArray();                   // flat {token}=>value map for templates
 ```
 
-Resolution order: **overrides → dynamic tokens (clickid/userid/domain/time/px/
-hash/random) → custom params (`c.*`, `subN`) → click columns**. Unknown tokens
+Resolution order: **overrides → forced query params (`_NAME`) → dynamic tokens
+(clickid/userid/domain/time/px/hash/random) → custom params (`c.*`, `subN`) →
+click columns**. Unknown tokens
 resolve to `null` (and are left intact by `render()`).
 
 ## Tokens in Landings
