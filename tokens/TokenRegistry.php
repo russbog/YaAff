@@ -83,6 +83,10 @@ class TokenRegistry
         }
 
         return match (true) {
+            // A leading underscore forces the incoming query param, bypassing
+            // built-in tokens: {_domain} reads ?domain=... even though bare
+            // {domain} resolves to the host serving the redirect.
+            strlen($token) > 1 && $token[0] === '_' => $this->customParam(substr($token, 1)),
             $token === 'clickid' => $this->clickid,
             $token === 'userid'  => $this->userid,
             $token === 'domain'  => $_SERVER['HTTP_HOST'] ?? null,

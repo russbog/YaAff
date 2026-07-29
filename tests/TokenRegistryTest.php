@@ -205,6 +205,38 @@ class TokenRegistryTest extends TestCase
         );
     }
 
+    public function testUnderscorePrefixForcesQueryParamOverBuiltin(): void
+    {
+        $_SERVER['HTTP_HOST'] = 'redirect.host';
+        try {
+            $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => ['domain' => 'aliexpress.com']]);
+            $this->assertSame('aliexpress.com', $r->resolve('_domain'));
+            $this->assertSame('redirect.host', $r->resolve('domain'));
+            $this->assertSame(
+                'https://google.com/?q=aliexpress.com',
+                $r->renderUrl('https://google.com/?q={_domain}')
+            );
+        } finally {
+            unset($_SERVER['HTTP_HOST']);
+        }
+    }
+
+    public function testUnderscorePrefixMissingParamIsNull(): void
+    {
+        $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => []]);
+        $this->assertNull($r->resolve('_domain'));
+        $this->assertSame('https://o.com/?q=', $r->renderUrl('https://o.com/?q={_domain}'));
+    }
+
+    public function testUnderscorePrefixDoesNotShadowParamsNamedWithUnderscore(): void
+    {
+        // {_x} first tries param `x`; a literal param named `_x` still wins
+        // for token {c._x}.
+        $r = TokenRegistry::fromClick(['clickid' => 'C', 'params' => ['_x' => 'lit', 'x' => 'plain']]);
+        $this->assertSame('plain', $r->resolve('_x'));
+        $this->assertSame('lit', $r->resolve('c._x'));
+    }
+
     public function testRenderUrlResolvesKnownTokens(): void
     {
         $r = TokenRegistry::fromClick(['clickid' => 'CLK', 'country' => 'US']);
