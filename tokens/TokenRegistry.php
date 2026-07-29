@@ -166,7 +166,10 @@ class TokenRegistry
             if ($v === null) {
                 return '';
             }
-            return $encode ? rawurlencode($v) : $v;
+            // Keep "/" literal so multi-segment values (e.g. an id like
+            // "abc/def" passed via ?domain=abc/def) extend the path instead
+            // of being encoded to %2F, which many servers reject.
+            return $encode ? str_replace('%2F', '/', rawurlencode($v)) : $v;
         }, $template);
     }
 

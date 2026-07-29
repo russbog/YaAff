@@ -237,6 +237,17 @@ class TokenRegistryTest extends TestCase
         );
     }
 
+    public function testPathTokenValueWithSlashStaysLiteral(): void
+    {
+        $r = new TokenRegistry('C', 'U', [
+            'qs' => ['domain' => 'dsadas/s3r23ff'],
+        ]);
+        $this->assertSame(
+            'https://tatrck.com/dsadas/s3r23ff?url=x',
+            $r->renderUrl('https://tatrck.com/{_domain}?url=x')
+        );
+    }
+
     public function testUnderscorePrefixNeverFallsBackToClickColumn(): void
     {
         $r = TokenRegistry::fromClick(['clickid' => 'C', 'country' => 'US', 'params' => []]);
