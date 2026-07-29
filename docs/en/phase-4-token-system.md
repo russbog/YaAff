@@ -56,6 +56,7 @@ A registry is constructed around one click:
 | `{ip}` `{country}` `{region}` `{city}` `{lang}` `{os}` `{osver}` `{client}` `{clientver}` `{device}` `{brand}` `{model}` `{isp}` `{connection_type}` `{ua}` `{status}` | click columns |
 | `{c.NAME}` | custom click param `NAME` |
 | `{_NAME}` | forces the incoming query param `NAME`, bypassing built-in tokens (e.g. `{_domain}` reads `?domain=...` instead of the redirect host) |
+| `{*NAME}` | in `renderUrl()`, inserts the value literally without URL-encoding (e.g. `{*_domain}` keeps `/` intact); combine with `_`. Bare `{NAME}` is URL-encoded as usual |
 | `{sub1}` … `{subN}`, `{sub_id_N}` | click param of the same name (Keitaro-style) |
 | `{hash:TOKEN}` | md5 of another token's value |
 | `{random:A-B}` | random integer in `[A, B]` |

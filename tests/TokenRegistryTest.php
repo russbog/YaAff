@@ -237,15 +237,55 @@ class TokenRegistryTest extends TestCase
         );
     }
 
-    public function testPathTokenValueWithSlashStaysLiteral(): void
+    public function testStarPrefixKeepsPathValueLiteral(): void
     {
         $r = new TokenRegistry('C', 'U', [
             'qs' => ['domain' => 'dsadas/s3r23ff'],
         ]);
+        // With '*' the "/" stays literal; without it the value is encoded.
         $this->assertSame(
             'https://tatrck.com/dsadas/s3r23ff?url=x',
+            $r->renderUrl('https://tatrck.com/{*_domain}?url=x')
+        );
+        $this->assertSame(
+            'https://tatrck.com/dsadas%2Fs3r23ff?url=x',
             $r->renderUrl('https://tatrck.com/{_domain}?url=x')
         );
+    }
+
+    public function testStarPrefixKeepsQueryValueLiteral(): void
+    {
+        $r = new TokenRegistry('C', 'U', [
+            'qs' => ['ref' => 'a/b c&d'],
+        ]);
+        // '*' inserts the value verbatim into the query; bare token is encoded.
+        $this->assertSame(
+            'https://o.com/?r=a/b c&d',
+            $r->renderUrl('https://o.com/?r={*ref}')
+        );
+        $this->assertSame(
+            'https://o.com/?r=a%2Fb+c%26d',
+            $r->renderUrl('https://o.com/?r={ref}')
+        );
+    }
+
+    public function testStarPrefixCombinesWithUnderscoreForcedParam(): void
+    {
+        $r = new TokenRegistry('C', 'U', [
+            'domain' => 'rclick.site',
+            'qs' => ['domain' => 'a/b'],
+        ]);
+        $this->assertSame('a/b', $r->resolve('*_domain'));
+        $this->assertSame(
+            'https://o.com/a/b',
+            $r->renderUrl('https://o.com/{*_domain}')
+        );
+    }
+
+    public function testStarPrefixInHtmlRenderIsPlainValue(): void
+    {
+        $r = new TokenRegistry('C', 'U', ['qs' => ['ref' => 'a/b']]);
+        $this->assertSame('id=a/b', $r->render('id={*_ref}'));
     }
 
     public function testUnderscorePrefixNeverFallsBackToClickColumn(): void
