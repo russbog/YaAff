@@ -10,7 +10,7 @@ function check_password($die = true): bool
     global $cloSettings;
     $pwd = $cloSettings['adminPassword'];
     $debug = $cloSettings['debug'];
-    get_session();
+    get_admin_session();
 
     if (!empty($_SESSION['loggedin']) && $_SESSION['loggedin'] === true){
         add_log('trace','Already logged in!');
