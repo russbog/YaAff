@@ -1,5 +1,7 @@
 <?php
 
+const ADMIN_SESSION_NAME = 'YAAFFADMIN';
+
 function set_cookie($name, $value, $sessionOnly = false): void
 {
     if (!$sessionOnly) {
@@ -99,6 +101,21 @@ function set_conversion_cookies(array $data): void
     $curmd5 = md5(json_encode($data));
     set_cookie('postmd5', $curmd5);
     set_cookie('ctime', (new DateTime())->getTimestamp());
+}
+
+/**
+ * Session for the admin panel / REST API. Uses its own cookie name so it never
+ * collides with the visitor PHPSESSID: the TDS sets that one with `Secure`
+ * when served over HTTPS (e.g. https://<ip>/favicon.ico), and browsers then
+ * refuse a non-Secure PHPSESSID from the plain-HTTP admin login, so the login
+ * silently never sticks.
+ */
+function get_admin_session($readOnly = false)
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_name(ADMIN_SESSION_NAME);
+    }
+    get_session($readOnly);
 }
 
 function get_session($readOnly = false)

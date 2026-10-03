@@ -37,7 +37,7 @@ function auth_multiuser(): bool
  */
 function auth_current_user(): ?array
 {
-    get_session(true);
+    get_admin_session(true);
     $u = $_SESSION['user'] ?? null;
     return is_array($u) ? $u : null;
 }
@@ -51,7 +51,7 @@ function auth_attempt(string $username, string $password): bool
     if ($ctx === null) {
         return false;
     }
-    get_session();
+    get_admin_session();
     $_SESSION['loggedin'] = true;
     $_SESSION['user'] = $ctx;
     session_write_close();
@@ -60,7 +60,7 @@ function auth_attempt(string $username, string $password): bool
 
 function auth_logout(): void
 {
-    get_session();
+    get_admin_session();
     unset($_SESSION['user']);
     $_SESSION['loggedin'] = false;
     session_write_close();
