@@ -54,7 +54,7 @@ $cloSettings =
 //- won't obfuscate any javascript code
 //- add tracing to some javascripts (they will print info to browser console)
 //- will add YWB headers to the response, where you'll be able to see, how long does it take to process requests
-"debug" => true,
+"debug" => false,
 
 //root directory for all caches
 "cachingDir" => "caching",

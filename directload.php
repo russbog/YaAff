@@ -38,7 +38,7 @@ function dl_get_req_path(): string
     if ($scriptDir !== '/' && $scriptDir !== '\\') {
         $reqPath = substr($reqPath, strlen($scriptDir));
     }
-    return ltrim($reqPath, '/');
+    return ltrim((string)$reqPath, '/');
 }
 
 // Serve a local file from a base directory, with security checks

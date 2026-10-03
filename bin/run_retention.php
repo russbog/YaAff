@@ -3,7 +3,8 @@
 /**
  * Data retention / pruning (cron entry point, Phase 12).
  *
- * Deletes click and audit-log rows older than `retentionDays` (settings.php).
+ * Deletes click and audit-log rows, and old files in the logs directory, older than
+ * `retentionDays` (settings.php).
  * A value of 0 disables pruning. Designed to run daily from cron:
  *
  *   17 4 * * * php /path/to/bin/run_retention.php >> /var/log/yatds-retention.log 2>&1
@@ -54,3 +55,11 @@ fwrite(STDOUT, sprintf(
     date('c', $result['cutoff']),
     $total
 ));
+
+$logsRemoved = 0;
+foreach (glob(__DIR__ . '/../logs/*/*.log') ?: [] as $file) {
+    if (is_file($file) && filemtime($file) < $result['cutoff'] && @unlink($file)) {
+        $logsRemoved++;
+    }
+}
+fwrite(STDOUT, sprintf("  %-20s %d file(s)\n", 'logs/*', $logsRemoved));

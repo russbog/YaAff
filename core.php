@@ -121,9 +121,9 @@ class FiltrationCore
 
         $a['url'] = $prefill['tds_url'] ?? $_SERVER['REQUEST_URI'];
         //host - is where from the traffic comes
-        $a['host'] = $prefill['tds_host'] ?? $_SERVER['HTTP_HOST'];
+        $a['host'] = $prefill['tds_host'] ?? $_SERVER['HTTP_HOST'] ?? '';
         //domain is where the traffic goes
-        $a['domain'] = $_SERVER['HTTP_HOST'];
+        $a['domain'] = $_SERVER['HTTP_HOST'] ?? '';
         parse_str($prefill['tds_qs'] ?? $_SERVER['QUERY_STRING'] ?? '', $a['qs']);
 
         $engines = self::load_search_engines();
@@ -507,7 +507,7 @@ class FiltrationCore
 
     private function is_bad_by_ipintel($ip): ?bool
     {
-        $contactEmail = "support@" . $_SERVER['HTTP_HOST'];
+        $contactEmail = "support@" . ($_SERVER['HTTP_HOST'] ?? 'localhost');
         $banOnProbability = 0.99;
 
         $ch = curl_init();
