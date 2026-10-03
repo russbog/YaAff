@@ -65,4 +65,20 @@ class RetentionManagerTest extends TestCase
         $this->assertArrayHasKey('clicks', $result['deleted']);
         $this->assertArrayNotHasKey('notification_log', $result['deleted']);
     }
+
+    public function testPruneDeletesAcrossManyBatchSlices(): void
+    {
+        $now = 1_000_000_000;
+        $times = [];
+        for ($i = 0; $i < 50; $i++) {
+            $times[] = $now - 40 * 86400 - $i * RetentionManager::BATCH_SECONDS;
+        }
+        $times[] = $now - 1;
+        $this->seed('clicks', 'time', $times);
+
+        $result = (new RetentionManager($this->driver))->prune(30, $now);
+
+        $this->assertSame(50, $result['deleted']['clicks']);
+        $this->assertCount(1, $this->driver->select('SELECT * FROM clicks'));
+    }
 }

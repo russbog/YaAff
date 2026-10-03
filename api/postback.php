@@ -9,7 +9,7 @@ require_once __DIR__ . '/../currency.php';
 require_once __DIR__ . '/conversion_handler.php';
 global $db;
 
-$curLink = (is_https() ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+$curLink = (is_https() ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? '');
 $clickid = $_REQUEST['clickid'] ?? '';
 if ($clickid === '') {
     http_response_code(500);

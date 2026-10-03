@@ -52,7 +52,7 @@ function set_userid(): string
 
 function generate_clickid(string $userid): string
 {
-    $raw = hash('xxh128', $userid . microtime(true), true);
+    $raw = hash('xxh128', $userid . microtime(true) . random_bytes(8), true);
     return substr(strtr(rtrim(base64_encode($raw), '='), '+/', '-_'), 0, 12);
 }
 

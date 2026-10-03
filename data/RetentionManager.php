@@ -32,6 +32,11 @@ class RetentionManager
         $this->driver = $driver;
     }
 
+    /** Rows are deleted in time slices of this many seconds so a single
+     *  DELETE never holds the write lock long enough to starve click inserts
+     *  (SqliteDriver busyTimeout is 5 s). */
+    public const BATCH_SECONDS = 3600;
+
     /**
      * Delete rows older than $days. A non-positive $days disables pruning and
      * returns an empty result (no rows touched).
@@ -53,13 +58,29 @@ class RetentionManager
             if ($columns === [] || !in_array($column, $columns, true)) {
                 continue;
             }
-            $this->driver->execute(
-                "DELETE FROM $table WHERE $column < ?",
-                [[$cutoff, DbDriver::INT]]
-            );
-            $deleted[$table] = $this->driver->affectedRows();
+            $deleted[$table] = $this->pruneTable($table, $column, $cutoff);
         }
 
         return ['cutoff' => $cutoff, 'deleted' => $deleted];
+    }
+
+    private function pruneTable(string $table, string $column, int $cutoff): int
+    {
+        $oldest = $this->driver->selectOne("SELECT MIN($column) AS t FROM $table WHERE $column < ?", [[$cutoff, DbDriver::INT]]);
+        if (!isset($oldest['t']) || $oldest['t'] === null) {
+            return 0;
+        }
+        $from = (int)$oldest['t'];
+        $total = 0;
+        while ($from < $cutoff) {
+            $to = min($from + self::BATCH_SECONDS, $cutoff);
+            $this->driver->execute(
+                "DELETE FROM $table WHERE $column >= ? AND $column < ?",
+                [[$from, DbDriver::INT], [$to, DbDriver::INT]]
+            );
+            $total += $this->driver->affectedRows();
+            $from = $to;
+        }
+        return $total;
     }
 }
